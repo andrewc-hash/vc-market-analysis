@@ -1,0 +1,77 @@
+# Production overrides — run with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# (requires Docker Compose >= 2.24 for the `!override` tag — verify with `docker compose config`)
+#
+# What this changes vs dev (C5 fix):
+#   - backend: real uvicorn (no --reload, 2 workers), not exposed on the host — only
+#     reachable through the TLS proxy; healthcheck + restart policy.
+#   - frontend: `next build && next start` (production build), proxied, restart policy.
+#   - redis: persistent volume (C4 — an in-flight run survives a restart's broker state),
+#     not exposed on the host.
+#   - caddy: TLS reverse proxy. Set CADDY_DOMAIN to a real domain for automatic
+#     Let's Encrypt certificates; defaults to "localhost" (Caddy self-signed/internal TLS).
+#   - Set API_KEYS ("alice:key1,bob:key2") to require X-API-Key on the API.
+#   - Uploads default OFF in prod (public-data pilot posture); set UPLOADS_ENABLED=true
+#     only when data-handling agreements exist for confidential material.
+services:
+  redis:
+    ports: !override []
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  backend:
+    ports: !override []
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - UPLOADS_DIR=/data/uploads
+      - REPORTS_DIR=/data/reports
+      - API_KEYS=${API_KEYS:-}
+      - UPLOADS_ENABLED=${UPLOADS_ENABLED:-false}
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health', timeout=3)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  celery-worker:
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - UPLOADS_DIR=/data/uploads
+      - REPORTS_DIR=/data/reports
+    restart: unless-stopped
+
+  frontend:
+    ports: !override []
+    environment:
+      # Browser-relative /api calls are routed by Caddy to the backend, so the public
+      # origin serves both UI and API over one TLS endpoint.
+      - NEXT_PUBLIC_API_URL=
+    command: sh -c "npm run build && npm run start"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  redisdata:
+  caddydata:

@@ -1,0 +1,19 @@
+# secrets — never commit
+backend/.env
+*.env
+!backend/.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# node / next
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# local artifacts
+reports/
+.DS_Store
+*.log

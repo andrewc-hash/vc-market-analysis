@@ -1,0 +1,23 @@
+# TLS reverse proxy for the prod compose profile.
+# CADDY_DOMAIN=yourdomain.com -> automatic Let's Encrypt certs.
+# CADDY_DOMAIN=localhost (default) -> Caddy internal/self-signed TLS for local prod testing.
+{$CADDY_DOMAIN:localhost} {
+	encode gzip
+
+	# API + health to the backend. Body cap: Starlette spools the whole multipart body
+	# BEFORE route deps run, so oversized uploads must be stopped at the proxy.
+	handle /api/* {
+		request_body {
+			max_size 128MB
+		}
+		reverse_proxy backend:8000
+	}
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else to the Next.js frontend
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

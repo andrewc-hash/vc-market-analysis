@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-gray-100 antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-gray-800 bg-gray-900 p-5 shadow-card;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-brand-600
+           px-4 py-2.5 text-sm font-semibold text-white transition-colors
+           hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-gray-700
+           bg-gray-800/60 px-3 py-1.5 text-sm font-medium text-gray-200
+           transition-colors hover:border-gray-600 hover:text-white
+           disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .input-field {
+    @apply w-full rounded-md border border-gray-700 bg-gray-800/70 px-3 py-2
+           text-sm text-gray-100 placeholder-gray-500 outline-none transition-colors
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+  }
+  .select-field {
+    @apply w-full rounded-md border border-gray-700 bg-gray-800/70 px-3 py-2
+           text-sm text-gray-100 outline-none transition-colors
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+  }
+  .label {
+    @apply mb-1.5 block text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500;
+  }
+  .kicker {
+    @apply text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500;
+  }
+}
+
+/* ── Report prose — the white "paper memo" reading pane (light serif) ── */
+.report-prose h2 {
+  @apply font-serif text-xl font-semibold text-slate-900 mt-10 mb-3 pb-2 border-b border-slate-200;
+}
+.report-prose h2:first-child {
+  @apply mt-0;
+}
+.report-prose h3 {
+  @apply text-base font-semibold text-slate-800 mt-7 mb-2;
+}
+.report-prose h4 {
+  @apply text-sm font-semibold text-blue-700 mt-5 mb-2;
+}
+.report-prose p {
+  @apply font-serif text-[15.5px] leading-[1.7] text-slate-800 mb-4;
+}
+.report-prose ul,
+.report-prose ol {
+  @apply my-4 ml-6 space-y-1.5 font-serif text-[15px] text-slate-800;
+}
+.report-prose li {
+  @apply leading-relaxed;
+}
+.report-prose table {
+  @apply w-full my-5 text-[13px] font-sans border-collapse;
+}
+.report-prose thead th {
+  @apply text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider
+         px-3 py-2 border-b-2 border-slate-200 bg-slate-50;
+}
+.report-prose tbody td {
+  @apply px-3 py-2 border-b border-slate-100 text-slate-700 tabular-nums;
+}
+.report-prose tbody tr:hover {
+  @apply bg-slate-50;
+}
+.report-prose blockquote {
+  @apply my-6 pl-4 border-l-4 border-blue-600 text-slate-700 italic;
+}
+.report-prose pre {
+  @apply my-6 p-4 rounded-md bg-slate-50 border border-slate-200 overflow-x-auto
+         text-sm text-slate-800 font-mono;
+}
+.report-prose code {
+  @apply text-blue-700 text-sm;
+}
+.report-prose pre code {
+  @apply text-slate-800;
+}
+.report-prose strong {
+  @apply text-slate-900 font-semibold;
+}
+.report-prose hr {
+  @apply my-8 border-slate-200;
+}
+
+/* ── Print / PDF export ──────────────────────────────────────────── */
+/* PrintableReport is hidden on screen and revealed only when printing. */
+.printable { display: none; }
+
+@media print {
+  header,
+  footer,
+  .no-print { display: none !important; }
+  body { background: #ffffff !important; }
+
+  .printable { display: block !important; color: #14202e; font-size: 11.5pt; line-height: 1.55; }
+  .printable h1 { font-size: 22pt; color: #0f1620; border-bottom: 3px solid #2563eb; padding-bottom: 6px; margin: 0 0 4px; }
+  .print-meta { color: #55637a; font-size: 10pt; margin: 0 0 16px; }
+  .print-map { page-break-inside: avoid; margin: 8px 0 22px; max-width: 430px; }
+
+  .print-prose h2 { font-size: 15pt; color: #0f1620; border-bottom: 1px solid #ccd6e4; padding-bottom: 3px; margin: 22px 0 8px; page-break-after: avoid; }
+  .print-prose h3 { font-size: 12.5pt; color: #22304a; margin: 16px 0 6px; page-break-after: avoid; }
+  .print-prose h4 { font-size: 11.5pt; color: #2563eb; margin: 12px 0 4px; }
+  .print-prose p { margin: 0 0 8px; color: #22304a; }
+  .print-prose strong { color: #0f1620; }
+  .print-prose ul, .print-prose ol { margin: 6px 0 10px 20px; }
+  .print-prose li { margin: 2px 0; color: #22304a; }
+  .print-prose blockquote { border-left: 4px solid #2563eb; padding: 4px 12px; margin: 10px 0; color: #22304a; font-style: italic; }
+  /* Tables may break across pages (a kept-together long table strands a near-blank
+     page); rows stay intact and the header row repeats on each page. */
+  .print-prose table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 10px 0; }
+  .print-prose thead { display: table-header-group; }
+  .print-prose tr { page-break-inside: avoid; }
+  .print-prose th { border: 1px solid #cdd8e6; padding: 4px 6px; text-align: left; color: #22304a; background: #f4f7fb; }
+  .print-prose td { border: 1px solid #dde5ef; padding: 4px 6px; font-variant-numeric: tabular-nums; }
+  .page-break { page-break-before: always; }
+  .print-prose code { color: #b1004e; }
+  .print-prose pre { border: 1px solid #e0e5ec; padding: 8px; font-size: 8.5pt; page-break-inside: avoid; }
+  .print-prose hr { border: none; border-top: 1px solid #d5dde8; margin: 18px 0; }
+
+  /* One-page tear sheet: tighter margins + compact prose so it fits a single page. */
+  .tearsheet { display: block !important; color: #14202e; }
+  .tearsheet .ts-prose p { margin: 0 0 6px; }
+  .tearsheet .ts-prose strong { color: #0f1620; }
+  .tearsheet .ts-prose ul, .tearsheet .ts-prose ol { margin: 4px 0 6px 16px; }
+  .tearsheet .ts-prose li { margin: 1px 0; }
+  .tearsheet table { page-break-inside: avoid; }
+
+  @page { size: letter; margin: 0.7in; }
+  /* The tear sheet targets a single sheet: pull its page margin in tighter. */
+}

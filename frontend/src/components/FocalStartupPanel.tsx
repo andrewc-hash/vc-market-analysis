@@ -23,8 +23,16 @@ interface Props {
 const ACCEPT = ".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.csv,.vtt,.srt,.mp3,.m4a,.wav,.webm";
 
 const MODES: { key: AnalysisMode; title: string; blurb: string }[] = [
-  { key: "vc", title: "VC · Evaluate a target", blurb: "Include this startup in the ranked field alongside discovered competitors." },
-  { key: "founder", title: "Founder · Test my startup", blurb: "Center the report on this startup vs its market: a build/pass verdict + a repositioning plan (what to change, what to keep)." },
+  {
+    key: "vc",
+    title: "VC · Evaluate a target",
+    blurb: "You're the investor. Verdict: INVEST / WATCH / PASS at a price, the deal ranked against its real field, its own return scenarios — and a deal path if it's a WATCH.",
+  },
+  {
+    key: "founder",
+    title: "Founder · Test my startup",
+    blurb: "You're the founder. Verdict: fundable today? + BUILD / PIVOT / STOP, a repositioning plan aimed at your weakest scores, and YOUR raise modelled (size, post-money, dilution, conditions to close).",
+  },
 ];
 
 function Switch({ on, onToggle, disabled }: { on: boolean; onToggle: () => void; disabled?: boolean }) {

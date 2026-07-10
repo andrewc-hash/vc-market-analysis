@@ -32,6 +32,36 @@ const Row = ({ n, title, children }: { n: string; title: string; children: React
 
 const K = ({ children }: { children: React.ReactNode }) => <span className="font-medium text-gray-200">{children}</span>;
 
+// One stage on the agent roadmap: model chip + what it consumes / produces.
+const RoadStage = ({ role, model, inputs, outputs, note, accent = false, last = false }: {
+  role: string; model: string; inputs: string; outputs: string; note?: string; accent?: boolean; last?: boolean;
+}) => (
+  <div className="relative flex gap-4">
+    <div className="flex flex-col items-center">
+      <span className={`z-10 mt-1 h-3 w-3 shrink-0 rounded-full ring-4 ring-gray-950 ${accent ? "bg-brand-500" : "bg-gray-600"}`} />
+      {!last && <span className="w-px flex-1 bg-gray-800" aria-hidden />}
+    </div>
+    <div className={`mb-4 w-full rounded-lg border p-3.5 ${accent ? "border-brand-500/40 bg-brand-500/5" : "border-gray-800 bg-gray-900"}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className={`text-sm font-semibold ${accent ? "text-brand-300" : "text-gray-100"}`}>{role}</h3>
+        <span className="rounded-md border border-gray-800 bg-gray-950/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-500">{model}</span>
+      </div>
+      <div className="mt-2 grid gap-1.5 text-[12.5px] leading-relaxed sm:grid-cols-2">
+        <div><div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Takes in</div><div className="text-gray-400">{inputs}</div></div>
+        <div><div className="text-[10px] font-semibold uppercase tracking-wide text-brand-400/80">Hands off</div><div className="text-gray-300">{outputs}</div></div>
+      </div>
+      {note && <p className="mt-2 border-t border-gray-800 pt-2 text-[11.5px] text-gray-500">{note}</p>}
+    </div>
+  </div>
+);
+
+const SeatItem = ({ children }: { children: React.ReactNode }) => (
+  <li className="flex gap-2 text-[12.5px] leading-relaxed text-gray-400">
+    <span className="mt-0.5 text-brand-400">·</span>
+    <span>{children}</span>
+  </li>
+);
+
 export default function DocsPage() {
   return (
     <>
@@ -84,6 +114,86 @@ export default function DocsPage() {
           <p>
             <K>Exports built to be forwarded:</K> a full PDF with every visual, a one-page tear sheet for the partner
             meeting, Markdown, and raw JSON. Every run is saved to History and can be re-run later to see what changed.
+          </p>
+        </div>
+
+        {/* AGENT ROADMAP */}
+        <div className="mt-10">
+          <div className="kicker">The agent roadmap</div>
+          <h2 className="mb-4 mt-1 text-xl font-semibold tracking-tight text-gray-100">How the answer gets made</h2>
+
+          <div className="mb-4 rounded-lg border border-dashed border-gray-700 bg-gray-900/40 p-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">You provide</div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+              {["A market prompt — or just a startup name", "Pitch deck / docs", "Founder-call recording or transcript",
+                "Cap-table CSV", "Weights · stage · geography · Bear/Base/Bull", "Fund size + check (optional)"].map((t) => (
+                <span key={t} className="rounded-md border border-gray-800 bg-gray-900 px-2 py-0.5 text-gray-400">{t}</span>
+              ))}
+            </div>
+          </div>
+
+          <RoadStage role="1 · Intake" model="parsing · transcription · vision"
+            inputs="Whatever you attached — decks (even image-only), docs, call audio, the cap-table CSV."
+            outputs="Clean source material: the deck as text, the founder's claims pulled from the call with timestamps, real round terms from the cap table — plus the market scope, auto-derived if you left the prompt blank." />
+          <RoadStage role="2 · Researcher" model="Gemini 2.5 Pro · live web"
+            inputs="The scoped assignment, your materials, and the founder claims to check."
+            outputs="A dated, source-linked brief: 6–8 startups profiled with financials, incumbents and their roadmaps, regulation, the acquisition tape, and a verdict on each founder claim — 35–45 searches, fresh-news pass on every company."
+            note="Facts only, no opinions. If it isn't found here, it can't appear in the memo — nothing downstream can search." />
+          <RoadStage role="3 · Two analysts, in parallel" model="Gemini 2.5 Pro ∥ Claude Sonnet 4.6"
+            inputs="The identical brief — independently, neither sees the other."
+            outputs="Two competing full analyses, each with raw 0–100 scores per company per dimension, a thesis, and return scenarios. Bear case argued first." />
+          <RoadStage role="4 · Referee" model="GPT-4.1 · up to 3 rounds" accent
+            inputs="Both analyses, side by side."
+            outputs="Their genuine disagreements, sent back to both analysts to re-argue until they converge."
+            note="The referee never scores — disagreement between two different AI vendors is the error-detection step a single chatbot doesn't have." />
+          <RoadStage role="5 · Compile + compute" model="Gemini 2.5 Pro + code" last
+            inputs="The converged analyses, plus the numbers software computed from them: reconciled scores, your weights applied, return ranges, fund math, claim verdicts."
+            outputs="One memo where every figure matches the computed artifacts — plus the map, ledger, grades, and a methodology section stating what was and wasn't checked." />
+
+          <div className="rounded-lg border border-brand-500/30 bg-brand-500/5 p-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-300">You get</div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+              {["Verdict-first memo", "Scored market map", "Weighted scorecard + moats", "Letter grades", "Ledger · scenarios · exit precedents",
+                "Fund-fit panel", "Founder-claim audit", "PDF · tear sheet · Markdown · JSON", "Re-runnable history"].map((t) => (
+                <span key={t} className="rounded-md border border-brand-500/30 bg-gray-900 px-2 py-0.5 text-gray-300">{t}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* TWO SEATS — VC vs Founder */}
+        <div className="mt-10">
+          <div className="kicker">Two seats at the table</div>
+          <h2 className="mb-1 mt-1 text-xl font-semibold tracking-tight text-gray-100">Same engine, opposite questions</h2>
+          <p className="mb-4 text-[13px] text-gray-500">
+            Both modes run the same research and debate. What changes is <K>whose decision the memo serves</K> —
+            and that rewrites the verdict, the return math, and which sections exist at all.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+              <div className="kicker text-brand-300">VC · Evaluate a target</div>
+              <h3 className="mb-2 mt-1 text-sm font-semibold text-gray-100">&ldquo;Should I write a check into this company — at what price?&rdquo;</h3>
+              <ul className="space-y-1.5">
+                <SeatItem><K>Verdict:</K> INVEST / WATCH / PASS at or below a stated valuation, anchored to the company&rsquo;s last-round terms.</SeatItem>
+                <SeatItem><K>The deal vs the field:</K> your target is ranked inside its real competitive field — and when it isn&rsquo;t the #1-quality asset, the memo must argue price-adjusted return vs the better company (quality rank ≠ best investment).</SeatItem>
+                <SeatItem><K>Return math is the buyer&rsquo;s:</K> the deal&rsquo;s own probability-weighted scenarios at its entry price — plus turns-of-your-fund and required exit when you add your fund&rsquo;s numbers.</SeatItem>
+                <SeatItem><K>On WATCH/PASS:</K> a &ldquo;Deal Path&rdquo; — the measurable, dated conditions that would change the answer, and the price at which today&rsquo;s evidence would clear.</SeatItem>
+              </ul>
+            </div>
+            <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+              <div className="kicker text-brand-300">Founder · Test my startup</div>
+              <h3 className="mb-2 mt-1 text-sm font-semibold text-gray-100">&ldquo;Should I keep building this — and will it raise?&rdquo;</h3>
+              <ul className="space-y-1.5">
+                <SeatItem><K>Verdict:</K> two calls, not one — &ldquo;Investor check: fundable today?&rdquo; and &ldquo;Founder call: BUILD / KEEP GOING / PIVOT / STOP&rdquo; — with whether weak scores are stage-normal or genuinely alarming.</SeatItem>
+                <SeatItem><K>A founder-only section (§0.5):</K> a repositioning plan — 2–4 moves aimed at your weakest <i>computed</i> scores, exactly one &ldquo;what NOT to change&rdquo;, a sequenced 90-day plan, and the fastest self-runnable signal to quit.</SeatItem>
+                <SeatItem><K>Return math is YOUR raise:</K> round size, target post-money benchmarked to named comps, implied dilution and your ownership after, conditions a lead will require to close — never a competitor&rsquo;s multiple dressed up as yours.</SeatItem>
+                <SeatItem><K>Your materials get audited:</K> deck stats and call claims are verified against the public record — including what the deck contradicts about itself.</SeatItem>
+              </ul>
+            </div>
+          </div>
+          <p className="mt-3 text-[12px] text-gray-500">
+            In both modes your company is always scored — never dropped as &ldquo;too early&rdquo; — and its data
+            confidence is labeled rather than hidden.
           </p>
         </div>
 

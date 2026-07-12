@@ -91,7 +91,7 @@ export default function DemoPage() {
         </div>
 
         <div className="no-print mt-10 text-center text-sm">
-          <a href="/" className="text-brand-300 hover:text-brand-200">← Build your own analysis</a>
+          <a href="/docs" className="text-brand-300 hover:text-brand-200">How these memos get made — and how to run your own →</a>
         </div>
       </main>
     </>

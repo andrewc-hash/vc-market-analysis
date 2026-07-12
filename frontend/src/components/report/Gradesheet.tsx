@@ -6,11 +6,12 @@ import { gradeColor } from "@/lib/viz";
 
 interface Props {
   gradesheet: GradesheetData | null | undefined;
+  analysisMode?: string;
 }
 
 /** Visual letter-grade tab. Every grade is computed IN CODE from the reconciled
  * scores (see final_report.gradesheet); this component only renders. */
-export default function Gradesheet({ gradesheet }: Props) {
+export default function Gradesheet({ gradesheet, analysisMode }: Props) {
   const [showRubric, setShowRubric] = useState(false);
   const startups = gradesheet?.startups ?? [];
   const criteria = gradesheet?.criteria ?? [];
@@ -61,7 +62,7 @@ export default function Gradesheet({ gradesheet }: Props) {
                 <h3 className="text-base font-bold text-gray-100">{s.name}</h3>
                 {s.is_focal && (
                   <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-300 ring-1 ring-brand-500/20">
-                    Your startup
+                    {analysisMode === "founder" ? "Your startup" : "Target"}
                   </span>
                 )}
               </div>

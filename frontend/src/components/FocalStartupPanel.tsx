@@ -26,12 +26,12 @@ const MODES: { key: AnalysisMode; title: string; blurb: string }[] = [
   {
     key: "vc",
     title: "VC · Evaluate a target",
-    blurb: "You're the investor. Verdict: INVEST / WATCH / PASS at a price, the deal ranked against its real field, its own return scenarios — and a deal path if it's a WATCH.",
+    blurb: "You're the investor. Verdict: INVEST / WATCH / PASS at a price, the deal ranked against its real field, its own return scenarios — and a deal path on WATCH or PASS.",
   },
   {
     key: "founder",
     title: "Founder · Test my startup",
-    blurb: "You're the founder. Verdict: fundable today? + BUILD / PIVOT / STOP, a repositioning plan aimed at your weakest scores, and YOUR raise modelled (size, post-money, dilution, conditions to close).",
+    blurb: "You're the founder. Verdict: fundable today? + BUILD / KEEP GOING / PIVOT / STOP, a repositioning plan aimed at your weakest scores, and YOUR raise modelled (size, post-money, dilution, conditions to close).",
   },
 ];
 

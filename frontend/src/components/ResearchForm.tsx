@@ -72,6 +72,12 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
   const needsDerive = hasFocal && !prompt.trim();
   // Founder mode centers the report on a NAMED startup (the backend rejects it unnamed).
   const founderNeedsName = focal.enabled && focal.analysisMode === "founder" && !focal.focalStartup.trim();
+  // VC mode with the panel ON but nothing attached silently degrades to a plain sector
+  // scan — legal, but surprising. Warn instead of blocking.
+  const vcUnnamed = focal.enabled && focal.analysisMode === "vc" && !focal.focalStartup.trim() && !focal.uploadId;
+  // Fund Economics ON without a fund size is silently dropped at submit (fund size is
+  // the master gate for the fund-math engine) — warn so the Fund Fit panel isn't missed.
+  const fundSizeMissing = fund.enabled && !(parseFloat(fund.fundSize) > 0);
 
   const handleDerive = async () => {
     setDeriving(true);
@@ -184,6 +190,18 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
             {founderNeedsName && !isLoading && (
               <p className="mt-2 text-xs text-amber-400">
                 Founder mode needs your startup&apos;s name — add it in “Target Startup Details”.
+              </p>
+            )}
+            {vcUnnamed && !isLoading && (
+              <p className="mt-2 text-xs text-amber-400">
+                Target Startup is on but unnamed — this will run as a plain sector scan. Add the
+                startup&apos;s name, or switch the panel off.
+              </p>
+            )}
+            {fundSizeMissing && !isLoading && (
+              <p className="mt-2 text-xs text-amber-400">
+                Fund Economics is on but fund size is empty — the Fund Fit panel won&apos;t render.
+                Add the fund size ($M), or switch it off.
               </p>
             )}
           </div>

@@ -34,6 +34,7 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
       try {
         const data = await pollResearchStatus(taskId);
         setStatus(data);
+        setPollErrors((prev) => (prev.length ? [] : prev)); // recovered — clear stale errors
 
         if (data.status === "SUCCESS" || data.status === "FAILURE") {
           if (intervalRef.current) clearInterval(intervalRef.current);
@@ -63,23 +64,27 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  // current_phase reports the node that just COMPLETED (worker streams updates),
+  // so labels/steps point at what is running NEXT.
   const phaseLabel: Record<string, string> = {
     initializing: "Initializing pipeline…",
-    researcher: "Researcher gathering live market data…",
-    analysts_fanout: "Dispatching analysts…",
-    analyst_a: "Analyst A drafting independent analysis…",
-    analyst_b: "Analyst B drafting independent analysis…",
-    judge: "Judge locating analyst disagreements…",
+    ingest_focal: "Researcher gathering live market data…",
+    researcher: "Analysts drafting independent analyses…",
+    analysts_fanout: "Analysts drafting independent analyses…",
+    analyst_a: "Analysts converging — judge reviews next…",
+    analyst_b: "Analysts converging — judge reviews next…",
+    judge: "Judge verdict in — re-arguing or compiling…",
     compile_report: "Compiling the final report…",
   };
 
   const phaseStep: Record<string, number> = {
     initializing: 1,
-    researcher: 2,
+    ingest_focal: 2,
+    researcher: 3,
     analysts_fanout: 3,
-    analyst_a: 3,
-    analyst_b: 4,
-    judge: 5,
+    analyst_a: 4,
+    analyst_b: 5,
+    judge: 6,
     compile_report: 6,
   };
 
@@ -211,11 +216,11 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
         </div>
       )}
 
-      {/* Rate limit note */}
+      {/* Duration note */}
       {status?.status === "STARTED" && elapsedSec > 30 && (
-        <div className="flex items-start gap-2 rounded-md border border-amber-900/50 bg-amber-950/20 p-3 text-xs text-amber-300/90">
-          <Icon name="alert" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Pipeline is running with rate-limit retries. This is normal — a full run takes several minutes.
+        <div className="flex items-start gap-2 rounded-md border border-gray-800 bg-gray-900/60 p-3 text-xs text-gray-400">
+          <Icon name="clock" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          A full run typically takes 15–25 minutes — the activity feed streams each agent&rsquo;s progress live.
         </div>
       )}
     </div>

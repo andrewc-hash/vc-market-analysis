@@ -273,7 +273,7 @@ export default function ReportViewer({ result }: Props) {
                   <Empty>No scores were computed for this run.</Empty>
                 ))}
 
-              {tab === "grades" && <Gradesheet gradesheet={report.gradesheet} />}
+              {tab === "grades" && <Gradesheet gradesheet={report.gradesheet} analysisMode={report.analysis_mode} />}
 
               {tab === "financials" &&
                 (ledger ? (

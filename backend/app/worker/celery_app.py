@@ -22,9 +22,12 @@ def create_celery_app() -> Celery:
         result_extended=True,
         # A full 3-round analyst↔judge debate (two slow Gemini 2.5 Pro analysts + judge each
         # round) plus the 65K-token compile can legitimately run long; 40 min was too tight and
-        # killed a max-debate run mid-compile. Give it headroom.
-        task_soft_time_limit=3000,  # 50 min soft limit (rate-limit retries need time)
-        task_time_limit=3900,       # 65 min hard limit
+        # killed a max-debate run mid-compile, and 65 min died under concurrent-run rate-limit
+        # contention (2026-07-12) and a laptop sleep (2026-07-13 — no limit survives a long
+        # sleep, but short lid-closes shouldn't kill an otherwise-healthy run). Headroom is
+        # cheap: the limit only exists to reap genuinely hung tasks.
+        task_soft_time_limit=5400,  # 90 min soft limit (rate-limit retries need time)
+        task_time_limit=6000,       # 100 min hard limit
         # Stale-result hygiene via TTL — replaces the old routes-level wipe-all purge,
         # which clobbered concurrent in-flight runs' results. Completed reports live in
         # the durable History store; Redis results only need to outlive the UI poll.
@@ -36,7 +39,7 @@ def create_celery_app() -> Celery:
         # Don't prefetch a deep unacked buffer; killed-while-queued messages were the
         # source of the ghost-task redelivery incident (visibility_timeout restore).
         worker_prefetch_multiplier=1,
-        broker_transport_options={"visibility_timeout": 4500},  # > hard time limit
+        broker_transport_options={"visibility_timeout": 6600},  # > hard time limit
     )
     app.autodiscover_tasks(["app.worker"])
     return app

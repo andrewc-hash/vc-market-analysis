@@ -128,7 +128,7 @@ vc-market-analysis/
 │       ├── models/schemas.py    ← Pydantic requests/responses + enums (AnalysisMode, Scope*, Report*)
 │       ├── services/            ← ingest.py (doc parsing + vision), scope.py (auto-scope), store.py (History store)
 │       ├── worker/
-│       │   ├── celery_app.py    ← Celery app; time limits 3000/3900s
+│       │   ├── celery_app.py    ← Celery app; time limits 5400/6000s
 │       │   └── tasks.py         ← run_research_pipeline: streams the graph, pushes progress, save-on-completion
 │       └── graph/
 │           ├── state.py         ← ResearchState TypedDict (+ focal/scope fields) + `add` reducer
@@ -236,7 +236,7 @@ Requires `backend/.env` (copy from `backend/.env.example`, fill all 5 API keys).
 - **Worker:** `celery -A app.worker.celery_app:celery_app worker --concurrency=2` (concurrency set in the compose command, not in `celery_app.py`).
 - **Redis DBs:** broker = DB 0, result backend = DB 1. No persistence volume — a redis restart wipes in-flight tasks (completed reports survive on the `reports` volume).
 - **Volumes:** `uploads` (focal-startup files) and `reports` (History store) mounted at `/data/uploads` and `/data/reports` on **both** backend and worker. Source is still baked (`COPY . .`, no live mount) → **rebuild to pick up code changes**.
-- A full run is slow (multi-agent + rate-limit retries). Celery limits: **soft 3000s / hard 3900s**.
+- A full run is slow (multi-agent + rate-limit retries). Celery limits: **soft 5400s / hard 6000s** (raised 2026-07-13 after a 65-min kill under concurrent-run rate-limit contention + a laptop-sleep kill; a healthy solo run is ~25-35 min — keep the Mac awake, e.g. `caffeinate`, during runs).
 - **Tests (token-free, no API keys):** `python3 backend/tests/test_focal.py` (+ `test_ingest`, `test_scope`, `test_structured_artifacts`, `test_filters_sliders`, `test_repositioning`, `test_freshness`, `test_gradesheet`, `test_trust`). They stub the LLM deps in `sys.modules` and exercise the real validators/nodes. Run these after any backend change to `nodes.py`/`services/`/`schemas.py`. **Rebuild the image before any live UI run** (source is baked).
 
 ---

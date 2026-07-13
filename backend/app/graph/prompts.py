@@ -773,13 +773,27 @@ that will drive an institutional VC SECTOR report on that market (about the MARK
 Return EXACTLY:
 {
   "sector": "<concise sector label, e.g. 'AI Ambient Clinical Documentation'>",
-  "market_prompt": "<3-5 sentence brief describing the SECTOR to analyze: the core technical/market shift, the buyer and primary use-case, the key sub-segments, the why-now catalysts, and the competitive + regulatory dimensions a VC report must cover>",
+  "market_prompt": "<3-5 sentence brief describing the SECTOR to analyze: the core technical/market shift, the buyer and primary use-case, the key sub-segments, the why-now catalysts, and the competitive + regulatory dimensions a VC report must cover. It MUST end with the standardized breadth+field instruction described in the RULES.>",
   "rationale": "<one sentence: what in the context told you this is the market>"
 }
 
 RULES:
 - The market_prompt must describe the SECTOR broadly enough to surface 6-8 competitors — do NOT make it about only the given startup.
 - Be specific and concrete (name the real sub-segments, buyers, and catalysts you can infer); no generic filler.
+- DEMAND A PURE-PLAY FIELD. The market_prompt MUST end with one sentence, in substance:
+  "Identify and score 6-8 INDEPENDENT PURE-PLAY startups in this sector; treat large incumbents,
+  platform vendors, CDMOs, and public device/pharma companies as reference-only benchmarks that
+  must NOT be ranked; if fewer than 6 pure-plays exist, widen to adjacent stages/geographies and
+  say so." (Many medtech/biotech/deep-tech markets are incumbent-dominated — without this the
+  ranked field collapses to 1-2 names.)
+- NEVER INVENT COMPANY NAMES. Name a specific company ONLY if it appears in the provided CONTEXT
+  (materials or search snippets) or is a well-known incumbent you are confident exists. If unsure,
+  describe the CATEGORY of player generically ("established EEG-monitor incumbents", "large
+  auto-injector / device makers") instead of naming one. A hallucinated competitor name sends the
+  downstream researcher chasing a company that does not exist — do not risk it. When you do name
+  incumbents, label them as incumbents/benchmarks, not as rankable startups.
+- Keep the regulatory framing appropriate to the sector (e.g. combination-product / SaMD / 510(k)
+  vs De Novo / CE / CPT reimbursement for medical devices) rather than generic "approval pathways".
 - If the context is thin, infer the MOST LIKELY sector and note that briefly in rationale.
 - Output the JSON object and NOTHING ELSE."""
 

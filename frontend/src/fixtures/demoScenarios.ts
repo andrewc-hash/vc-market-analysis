@@ -1,10 +1,12 @@
 import type { TaskStatusResponse } from "@/lib/api";
-import { reportGolden } from "./reportGolden";
+import vcAgentSecurity from "./demo/vcAgentSecurity.json";
 import vcMedicalScribes from "./demo/vcMedicalScribes.json";
 import founderNeuroscribe from "./demo/founderNeuroscribe.json";
 
 // The public demo renders REAL multi-agent pipeline outputs (baked to JSON) — no backend,
 // no API keys, no waiting, no cost. Three scenarios cover every mode of the product.
+// Re-baked 2026-07-12 from fresh runs: all three now carry the full artifact set
+// (gradesheet, fund math, methodology, data freshness, exit precedents, §0.5 in founder mode).
 
 export interface DemoScenario {
   id: string;
@@ -16,13 +18,14 @@ export interface DemoScenario {
 }
 
 function wrap(id: string, finalReport: unknown): TaskStatusResponse {
+  const report = finalReport as Record<string, unknown>;
   return {
     task_id: id,
     status: "SUCCESS",
     current_phase: "compile_report",
-    iterations_completed: 3,
+    iterations_completed: (report.iterations_to_consensus as number) ?? 3,
     agent_logs: [],
-    final_report: finalReport as Record<string, unknown>,
+    final_report: report,
     error: null,
   };
 }
@@ -33,8 +36,8 @@ export const demoScenarios: DemoScenario[] = [
     tag: "VC · Sector scan",
     title: "Analyze a sector",
     subtitle: "A full field of startups — scored, mapped on a 2×2, and ranked by a weighted index.",
-    config: { sector: "AI Agent Security & Runtime Governance", stage: "Seed – Series B", mode: "VC" },
-    result: reportGolden,
+    config: { sector: "AI Agent Security & Runtime Governance", stage: "All stages", mode: "VC" },
+    result: wrap("demo-vc-sector", vcAgentSecurity),
   },
   {
     id: "vc-target",

@@ -40,7 +40,7 @@ export default function TermsPage() {
       </p>
 
       <p className="mt-8 text-xs text-gray-500">
-        <a href="/" className="underline hover:text-gray-300">← Back to the app</a>
+        <a href="/app" className="underline hover:text-gray-300">← Back to the app</a>
       </p>
     </main>
   );

@@ -61,8 +61,16 @@ export default function TearSheet({ report }: { report: FinalReport }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: "3px solid #2563eb", paddingBottom: 6, marginBottom: 10 }}>
         <div>
-          <div style={{ fontSize: "9pt", letterSpacing: "0.08em", textTransform: "uppercase", color: "#55637a" }}>
-            {mode === "FOUNDER" ? "Founder Deal Screen" : "Investment Tear Sheet"}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+              <rect width="24" height="24" rx="5" fill="#2563eb" />
+              <path d="M12 4 L20 12 L12 20 L4 12 Z" fill="#ffffff" />
+              <path d="M12 8.5 L15.5 12 L12 15.5 L8.5 12 Z" fill="#2563eb" />
+            </svg>
+            <span style={{ fontSize: "10.5pt", fontWeight: 700, color: "#0f1620", letterSpacing: "-0.01em" }}>Prospectus</span>
+            <span style={{ fontSize: "8pt", letterSpacing: "0.08em", textTransform: "uppercase", color: "#8090a5" }}>
+              · {mode === "FOUNDER" ? "Founder Deal Screen" : "Investment Tear Sheet"}
+            </span>
           </div>
           <div style={{ fontSize: "18pt", fontWeight: 700, color: "#0f1620", lineHeight: 1.1 }}>{sector || "Market Analysis"}</div>
         </div>

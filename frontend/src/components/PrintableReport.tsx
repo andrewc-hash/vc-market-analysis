@@ -119,7 +119,21 @@ export default function PrintableReport({ report }: { report: FinalReport }) {
 
   return (
     <div className="printable">
-      <h1>Prospectus{sector ? ` — ${sector}` : ""}</h1>
+      {/* Letterhead — branded header on the forwarded artifact */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #2563eb", paddingBottom: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <rect width="24" height="24" rx="5" fill="#2563eb" />
+            <path d="M12 4 L20 12 L12 20 L4 12 Z" fill="#ffffff" />
+            <path d="M12 8.5 L15.5 12 L12 15.5 L8.5 12 Z" fill="#2563eb" />
+          </svg>
+          <span style={{ fontSize: "15pt", fontWeight: 700, color: "#0f1620", letterSpacing: "-0.01em" }}>Prospectus</span>
+        </div>
+        <div style={{ fontSize: "8.5pt", textTransform: "uppercase", letterSpacing: "0.08em", color: "#55637a" }}>
+          {mode === "FOUNDER" ? "Founder Deal Screen" : "Investment Memo"}
+        </div>
+      </div>
+      <h1>{sector || "Market Analysis"}</h1>
       <p className="print-meta">{meta.join("  ·  ")}</p>
 
       {map && (

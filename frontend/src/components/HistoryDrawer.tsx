@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { listReports, updateReport, deleteReport, rerunReport, type ReportSummary } from "@/lib/api";
+import { norm, nameMatch } from "@/lib/pickLabel";
 import { Icon } from "./icons";
 
 interface Props {
@@ -175,7 +176,12 @@ export default function HistoryDrawer({ open, onClose, onSelect, onRerun, refres
                       {r.analysis_mode === "founder" ? "Founder" : "VC"}
                     </span>
                     {r.focal_startup && <span className="max-w-[7rem] truncate">{r.focal_startup}</span>}
-                    {r.top_pick && <span className="max-w-[8rem] truncate">· {r.top_pick}</span>}
+                    {/* Suppress the pick chip when it just repeats the focal (VC+focal mode
+                        stores the evaluated target as top_pick) — showing "· KBO" next to the
+                        focal "KBO" wrongly implies KBO is the recommendation (R11). */}
+                    {r.top_pick && !(r.focal_startup && nameMatch(norm(r.top_pick), norm(r.focal_startup))) && (
+                      <span className="max-w-[8rem] truncate">· {r.top_pick}</span>
+                    )}
                     <span className="tabular-nums">· {fmtDate(r.created_at)}</span>
                   </div>
                 </button>

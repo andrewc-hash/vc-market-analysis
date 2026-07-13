@@ -3,6 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { FinalReport } from "@/lib/api";
+import { pickLabel } from "@/lib/pickLabel";
 
 // A ONE-PAGE IC tear sheet — the artifact forwarded to / read at a partner meeting.
 // Hidden on screen (`.printable`), shown only when printing (see globals.css @media print),
@@ -24,7 +25,13 @@ function sectionText(md: string, n: number): string {
 export default function TearSheet({ report }: { report: FinalReport }) {
   const md = report.merged_report || "";
   const mode = (report.analysis_mode || "vc").toUpperCase();
-  const pick = report.recommended_pick || (report.ranking || [])[0] || "—";
+  const label = pickLabel(report);
+  const pick = label.pick || "—";
+  const conf = report.score_confidence ?? {};
+  const fmtScore = (n: string): string | number => {
+    const v = ws[n]?.weighted_score;
+    return v == null ? "—" : conf[n] === "low" ? `≈${Math.round(v)}` : v;
+  };
   const sector = (report.sector || "").trim();
   const asOf = report.data_freshness?.report_date || "";
   const ranking = report.ranking ?? [];
@@ -60,7 +67,8 @@ export default function TearSheet({ report }: { report: FinalReport }) {
           <div style={{ fontSize: "18pt", fontWeight: 700, color: "#0f1620", lineHeight: 1.1 }}>{sector || "Market Analysis"}</div>
         </div>
         <div style={{ textAlign: "right", fontSize: "9pt", color: "#55637a" }}>
-          <div><b style={{ color: "#0f1620" }}>{mode === "FOUNDER" ? "Subject" : "Top pick"}:</b> {mode === "FOUNDER" ? (report.focal_startup || pick) : pick}</div>
+          <div><b style={{ color: "#0f1620" }}>{label.kicker}:</b> {pick}{label.rankSuffix}</div>
+          {label.fieldLeader && <div>Field leader: {label.fieldLeader}</div>}
           <div>Bias: {report.thesis_bias || "Base"}{asOf ? ` · as of ${asOf}` : ""}</div>
         </div>
       </div>
@@ -112,9 +120,9 @@ export default function TearSheet({ report }: { report: FinalReport }) {
                   {topRanked.map((n, i) => (
                     <tr key={n} style={{ borderBottom: "1px solid #e4eaf2" }}>
                       <td style={{ padding: "2.5px 0", color: "#8090a5" }}>{i + 1}</td>
-                      <td style={{ padding: "2.5px 0", color: "#0f1620", fontWeight: n === pick ? 700 : 400 }}>{n}{n === pick ? " ★" : ""}</td>
+                      <td style={{ padding: "2.5px 0", color: "#0f1620", fontWeight: n === label.starName ? 700 : 400 }}>{n}{n === label.starName ? " ★" : ""}</td>
                       <td style={{ padding: "2.5px 0", textAlign: "right", color: "#22304a", fontWeight: 600 }}>
-                        {ws[n]?.weighted_score ?? "—"}
+                        {fmtScore(n)}
                       </td>
                     </tr>
                   ))}

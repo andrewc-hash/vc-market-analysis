@@ -1,4 +1,5 @@
 import type { FinalReport } from "./api";
+import { pickLabel } from "./pickLabel";
 
 const DIMS: [string, string][] = [
   ["financial_health", "Financial"],
@@ -29,8 +30,10 @@ export function toMarkdown(r: FinalReport): string {
 
   L.push("# VC Market Analysis" + (sector ? ` — ${sector}` : ""));
   const meta = [`**Mode:** ${mode}`];
-  const pick = r.recommended_pick || ranking[0];
-  if (pick) meta.push(`**Top pick:** ${pick}`);
+  const pl = pickLabel(r);
+  const pick = pl.pick;
+  if (pick) meta.push(`**${pl.kicker}:** ${pick}${pl.rankSuffix}`);
+  if (pl.fieldLeader) meta.push(`**Field leader:** ${pl.fieldLeader}`);
   if (r.expected_return != null) {
     const lo = r.expected_return_low, hi = r.expected_return_high;
     const val = lo != null && hi != null && lo !== hi

@@ -217,7 +217,7 @@ export default function MarketMap({ map, ranking = [], onSelect, light = false }
           </span>
         )}
         <span className={light ? "text-amber-700" : "text-yellow-300"}>◇ white space</span>
-        <span className={light ? "text-slate-500" : "text-gray-500"}>size = capital raised · ◯ ring = top pick</span>
+        <span className={light ? "text-slate-500" : "text-gray-500"}>size = capital raised · ◯ ring = field leader (quality #1)</span>
       </div>
       <p className={`mt-1 text-[11px] ${light ? "text-slate-500" : "text-gray-600"}`}>
         Positions are scored 0–100 on each axis — illustrative framing, not exact measurement.

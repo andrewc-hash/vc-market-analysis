@@ -3,6 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { FinalReport } from "@/lib/api";
+import { pickLabel } from "@/lib/pickLabel";
 import MarketMap from "./report/MarketMap";
 
 // Hidden on screen (`.printable { display:none }`), shown only when printing (see globals.css
@@ -62,9 +63,11 @@ export default function PrintableReport({ report }: { report: FinalReport }) {
   const sector = (report.sector || "").trim();
   const mode = (report.analysis_mode || "vc").toUpperCase();
 
-  const pick = report.recommended_pick || ranking[0];
+  const label = pickLabel(report);
+  const pick = label.pick;
   const meta = [`Mode: ${mode}`];
-  if (pick) meta.push(`Top pick: ${pick}`);
+  if (pick) meta.push(`${label.kicker}: ${pick}${label.rankSuffix}`);
+  if (label.fieldLeader) meta.push(`Field leader: ${label.fieldLeader}`);
   // The probability-weighted return is the modelled pick's — in founder mode that's usually a
   // COMPETITOR (the field leader), so attribute it rather than let it read as the focal's.
   // Shown as the honest RANGE (gross multiple) when bounds differ.
@@ -147,7 +150,7 @@ export default function PrintableReport({ report }: { report: FinalReport }) {
               {rankedNames.map((n, i) => (
                 <tr key={n}>
                   <td>{i + 1}</td>
-                  <td><b>{n}</b>{n === pick ? " ★" : ""}</td>
+                  <td><b>{n}</b>{n === label.starName ? " ★" : ""}</td>
                   {DIMS.map((d) => <td key={d.key}>{fmtScore(n, weighted[n][d.key])}</td>)}
                   <td><b>{fmtScore(n, weighted[n].weighted_score)}</b></td>
                 </tr>
@@ -394,7 +397,7 @@ export default function PrintableReport({ report }: { report: FinalReport }) {
             <tbody>
               {gs.startups.map((s) => (
                 <tr key={s.name}>
-                  <td><b>{s.name}</b>{s.is_focal ? " (focal)" : ""}</td>
+                  <td><b>{s.name}</b>{s.is_focal ? (mode === "FOUNDER" ? " (your startup)" : " (target)") : ""}</td>
                   <td><b>{s.overall.letter}</b></td>
                   {gs.criteria.map((c) => <td key={c.key}>{s.cells[c.key]?.letter ?? "—"}</td>)}
                 </tr>

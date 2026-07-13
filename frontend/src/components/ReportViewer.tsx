@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import type { FinalReport, TaskStatusResponse } from "@/lib/api";
 import { toMarkdown, downloadFile, reportSlug } from "@/lib/exportReport";
+import { pickLabel } from "@/lib/pickLabel";
 import ReportSections from "./report/ReportSections";
 import MarketMap from "./report/MarketMap";
 import Leaderboard from "./report/Leaderboard";
@@ -48,7 +49,9 @@ export default function ReportViewer({ result }: Props) {
   const ledger = report.financial_ledger ?? null;
   const mode = report.analysis_mode === "founder" ? "founder" : "vc";
   const sector = (report.sector || "").trim();
-  const pick = report.recommended_pick || ranking[0];
+  // R11 header consistency (VC+focal → "Target evaluated", never "Top pick") is centralized
+  // in pickLabel() so the masthead, tear sheet, PDF, and Markdown export never diverge.
+  const { pick, kicker: pickKicker, rankSuffix: pickSuffix, fieldLeader, focalIsPick } = pickLabel(report);
 
   // Honest return range (gross), matching PrintableReport's null guards.
   const retLo = report.expected_return_low;
@@ -115,13 +118,21 @@ export default function ReportViewer({ result }: Props) {
               {pick && (
                 <div
                   title={
-                    report.recommended_pick && ranking[0] && report.recommended_pick !== ranking[0]
-                      ? `The report's §0/§12 recommendation. #1 by quality index: ${ranking[0]} — see the "quality rank vs price" bridge in §12.`
-                      : "The report's recommendation"
+                    focalIsPick
+                      ? "This report evaluates your target — see §0/§12 for its INVEST/WATCH/PASS verdict. This is NOT a buy recommendation."
+                      : report.recommended_pick && ranking[0] && report.recommended_pick !== ranking[0]
+                        ? `The report's §0/§12 recommendation. #1 by quality index: ${ranking[0]} — see the "quality rank vs price" bridge in §12.`
+                        : "The report's recommendation"
                   }
                 >
-                  <div className="kicker">{mode === "founder" ? "Subject" : "Top pick"}</div>
-                  <div className="text-lg font-semibold text-brand-300">{pick}</div>
+                  <div className="kicker">{pickKicker}</div>
+                  <div className="text-lg font-semibold text-brand-300">{pick}<span className="text-sm font-normal text-gray-500">{pickSuffix}</span></div>
+                </div>
+              )}
+              {fieldLeader && (
+                <div title="The highest-scoring startup in the field by the weighted quality index — not necessarily the recommended investment.">
+                  <div className="kicker">Field leader</div>
+                  <div className="text-lg font-semibold text-gray-100">{fieldLeader}</div>
                 </div>
               )}
               {retRange && (

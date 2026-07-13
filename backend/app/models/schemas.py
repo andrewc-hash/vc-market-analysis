@@ -155,7 +155,7 @@ class ScopeResponse(BaseModel):
     sector: str = ""
     rationale: str = ""
     autoderived: bool = False
-    source: Literal["materials", "search", "none"] = "none"
+    source: Literal["materials", "materials+search", "search", "none"] = "none"
 
 
 class ReportSummary(BaseModel):

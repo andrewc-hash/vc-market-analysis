@@ -97,7 +97,7 @@ export interface ScopeResponse {
   sector: string;
   rationale: string;
   autoderived: boolean;
-  source: "materials" | "search" | "none";
+  source: "materials" | "materials+search" | "search" | "none";
 }
 
 export interface UploadResponse {

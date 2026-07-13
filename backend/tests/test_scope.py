@@ -2,8 +2,10 @@
 
 Stubs the LLM + search boundary so no API call happens; exercises the real orchestration:
   - derive_scope: parses the model's JSON into {sector, market_prompt, rationale}, None when empty
-  - infer_scope: materials path (source='materials'), search-grounding path (source='search'),
-    and graceful failure (autoderived=False) when the model can't infer
+  - infer_scope: materials+search path (source='materials+search', search appended as a
+    LABELED SECONDARY block), materials-only when search yields nothing (source='materials'),
+    name-only search grounding (source='search'), and graceful failure (autoderived=False)
+    when the model can't infer
   - extract_materials_cached: writes/reads the _extracted.txt cache, and the cache file is NOT
     re-ingested as a source
 
@@ -68,14 +70,27 @@ with tempfile.TemporaryDirectory() as parent:
     Path(parent, "up1").mkdir()
     Path(parent, "up1", "deck.txt").write_text("NeuroScribe: stealth ICU ambient scribe.")
     S.get_settings = lambda: types.SimpleNamespace(uploads_dir=parent)
-    N.derive_scope = lambda focal, ctx, settings: {"sector": "AI Medical Scribes", "market_prompt": "P" * 30, "rationale": "r"}
+    _ctxs = []
+    N.derive_scope = lambda focal, ctx, settings: (_ctxs.append(ctx) or {"sector": "AI Medical Scribes", "market_prompt": "P" * 30, "rationale": "r"})
 
-    r_mat = S.infer_scope("NeuroScribe", "up1")
-    check("materials path -> source='materials'", r_mat["source"] == "materials", f"got {r_mat['source']}")
-    check("materials path -> autoderived True + prompt set", r_mat["autoderived"] and len(r_mat["market_prompt"]) >= 30)
-
-    # no upload -> grounding search path (stub tools._tavily_search)
+    # materials + name -> search runs too, appended as a LABELED SECONDARY block
     import app.graph.tools as T
+    T._tavily_search = lambda *a, **k: "Search snippet: NeuroScribe builds AI scribes."
+    r_mat = S.infer_scope("NeuroScribe", "up1")
+    check("materials+name -> source='materials+search'", r_mat["source"] == "materials+search", f"got {r_mat['source']}")
+    check("materials+name -> autoderived True + prompt set", r_mat["autoderived"] and len(r_mat["market_prompt"]) >= 30)
+    check("materials stay PRIMARY (labeled secondary search block after them)",
+          _ctxs and "stealth ICU ambient scribe" in _ctxs[-1]
+          and "SECONDARY CONTEXT: LIVE WEB SEARCH" in _ctxs[-1]
+          and "Search snippet" in _ctxs[-1]
+          and _ctxs[-1].index("stealth ICU ambient scribe") < _ctxs[-1].index("Search snippet"))
+
+    # materials + name but search yields nothing -> pure materials path
+    T._tavily_search = lambda *a, **k: ""
+    r_mat_only = S.infer_scope("NeuroScribe", "up1")
+    check("materials-only when search empty -> source='materials'", r_mat_only["source"] == "materials", f"got {r_mat_only['source']}")
+
+    # no upload -> grounding search path
     T._tavily_search = lambda *a, **k: "Search snippet: NeuroScribe builds AI scribes."
     r_srch = S.infer_scope("NeuroScribe", "")
     check("name-only path -> source='search'", r_srch["source"] == "search", f"got {r_srch['source']}")

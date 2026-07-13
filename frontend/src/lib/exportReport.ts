@@ -28,7 +28,7 @@ export function toMarkdown(r: FinalReport): string {
   const ws = (r.weighted_scores ?? {}) as unknown as Record<string, Record<string, unknown>>;
   const mode = (r.analysis_mode || "vc").toUpperCase();
 
-  L.push("# VC Market Analysis" + (sector ? ` — ${sector}` : ""));
+  L.push("# Prospectus" + (sector ? ` — ${sector}` : ""));
   const meta = [`**Mode:** ${mode}`];
   const pl = pickLabel(r);
   const pick = pl.pick;

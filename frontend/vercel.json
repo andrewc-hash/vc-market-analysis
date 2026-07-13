@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "redirects": [{ "source": "/", "destination": "/demo" }],
   "build": {
     "env": { "NEXT_PUBLIC_API_URL": "" }
   }

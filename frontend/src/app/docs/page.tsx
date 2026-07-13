@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Icon, type IconName } from "@/components/icons";
+import { Wordmark } from "@/components/Wordmark";
 
 export const metadata: Metadata = {
-  title: "Docs — VC Market Analysis Engine",
+  title: "Docs — Prospectus",
   description: "What you get, why the numbers hold up, and how to run it.",
 };
 
@@ -67,13 +68,9 @@ export default function DocsPage() {
     <>
       <header className="no-print sticky top-0 z-30 border-b border-gray-800 bg-gray-950/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <a href="/" className="flex items-center gap-2.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-brand-600 text-[11px] font-bold leading-none text-white">V</span>
-            <span className="text-sm font-semibold text-gray-100">VC Market Analysis</span>
-            <span className="hidden text-[10px] font-medium uppercase tracking-[0.2em] text-gray-500 sm:inline">Engine</span>
-          </a>
+          <Wordmark href="/" />
           <nav className="flex items-center gap-1 text-[13px]">
-            <a href="/" className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">New analysis</a>
+            <a href="/app" className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">Open the app</a>
             <a href="/demo" className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">
               Examples
               <Icon name="arrow-right" className="h-3.5 w-3.5" />
@@ -284,7 +281,7 @@ export default function DocsPage() {
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <a href="/demo" className="btn-primary">See three real memos</a>
-          <a href="/" className="btn-secondary">Run your own</a>
+          <a href="/app" className="btn-secondary">Run your own</a>
         </div>
 
         <footer className="mt-12 border-t border-gray-800 pt-5 text-center text-xs text-gray-500">

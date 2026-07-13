@@ -1,224 +1,112 @@
-"use client";
+import { Icon, type IconName } from "@/components/icons";
+import { Wordmark } from "@/components/Wordmark";
 
-import { useCallback, useState } from "react";
-import ResearchForm from "@/components/ResearchForm";
-import ResearchStatus from "@/components/ResearchStatus";
-import ReportViewer from "@/components/ReportViewer";
-import HistoryDrawer from "@/components/HistoryDrawer";
-import { Icon } from "@/components/icons";
-import {
-  getReport,
-  getStoredApiKey,
-  setStoredApiKey,
-  submitResearch,
-  type ResearchRequest,
-  type TaskStatusResponse,
-} from "@/lib/api";
+// The front door. Static, backend-free — greets a visitor, states what Prospectus is,
+// and routes them to a live memo (/demo), the console (/app), or the docs.
 
-export default function Home() {
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [completedResult, setCompletedResult] = useState<TaskStatusResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [historyKey, setHistoryKey] = useState(0);
+const Trust = ({ icon, title, children }: { icon: IconName; title: string; children: React.ReactNode }) => (
+  <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+    <div className="flex items-center gap-2">
+      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-500/10 text-brand-300">
+        <Icon name={icon} className="h-3.5 w-3.5" />
+      </span>
+      <h3 className="text-sm font-semibold text-gray-100">{title}</h3>
+    </div>
+    <p className="mt-2 text-[13px] leading-relaxed text-gray-400">{children}</p>
+  </div>
+);
 
-  const handleSubmit = async (request: ResearchRequest) => {
-    setError(null);
-    setCompletedResult(null);
-    setIsLoading(true);
-    try {
-      const { task_id } = await submitResearch(request);
-      setTaskId(task_id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit.");
-      setIsLoading(false);
-    }
-  };
-
-  const handleComplete = useCallback((result: TaskStatusResponse) => {
-    setIsLoading(false);
-    setCompletedResult(result);
-    // A finished run is now saved to history — refresh the drawer next time it opens.
-    if (result.status === "SUCCESS") setHistoryKey((k) => k + 1);
-  }, []);
-
-  // Open a past analysis from the History drawer into the report viewer.
-  const openFromHistory = async (id: string) => {
-    setDrawerOpen(false);
-    setError(null);
-    try {
-      const rec = await getReport(id);
-      setTaskId(null);
-      setIsLoading(false);
-      setCompletedResult({
-        task_id: rec.id,
-        status: "SUCCESS",
-        current_phase: "compile_report",
-        iterations_completed: rec.final_report?.iterations_to_consensus ?? 0,
-        agent_logs: [],
-        final_report: rec.final_report as unknown as Record<string, unknown>,
-        error: null,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to open report.");
-    }
-  };
-
-  const handleReset = () => {
-    setTaskId(null);
-    setIsLoading(false);
-    setCompletedResult(null);
-    setError(null);
-  };
-
-  const showForm = !taskId && !completedResult;
-
+export default function Landing() {
   return (
     <>
-      {/* Top navigation */}
-      <header className="no-print sticky top-0 z-30 border-b border-gray-800 bg-gray-950/90 backdrop-blur">
+      {/* Nav */}
+      <header className="sticky top-0 z-30 border-b border-gray-800 bg-gray-950/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <a href="/" className="flex items-center gap-2.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-brand-600 text-[11px] font-bold leading-none text-white">
-              V
-            </span>
-            <span className="text-sm font-semibold text-gray-100">VC Market Analysis</span>
-            <span className="hidden text-[10px] font-medium uppercase tracking-[0.2em] text-gray-500 sm:inline">
-              Engine
-            </span>
-          </a>
+          <Wordmark href="/" />
           <nav className="flex items-center gap-1 text-[13px]">
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100"
-            >
-              <Icon name="clock" className="h-3.5 w-3.5" />
-              History
-            </button>
-            <a
-              href="/demo"
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100"
-            >
-              Examples
-              <Icon name="arrow-right" className="h-3.5 w-3.5" />
-            </a>
-            <a
-              href="/docs"
-              className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100"
-            >
-              Docs
-            </a>
-            <button
-              onClick={() => {
-                const next = window.prompt(
-                  "API key for this deployment (leave empty to clear):",
-                  getStoredApiKey()
-                );
-                if (next !== null) setStoredApiKey(next.trim());
-              }}
-              title="Set the X-API-Key used for requests (required on secured deployments)"
-              aria-label="Set API key"
-              className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-200"
-            >
-              <Icon name="key" className="h-4 w-4" />
-            </button>
+            <a href="/demo" className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">Examples</a>
+            <a href="/docs" className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">Docs</a>
+            <a href="/app" className="ml-1 rounded-md bg-brand-600 px-3 py-1.5 font-medium text-white transition-colors hover:bg-brand-500">Open the app</a>
           </nav>
         </div>
       </header>
 
-      <HistoryDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onSelect={openFromHistory}
-        onRerun={(tid) => {
-          // A re-run is a fresh pipeline task — reuse the normal polling flow.
-          setDrawerOpen(false);
-          setError(null);
-          setCompletedResult(null);
-          setIsLoading(true);
-          setTaskId(tid);
-        }}
-        refreshKey={historyKey}
-      />
+      <main>
+        {/* Hero */}
+        <section className="mx-auto max-w-3xl px-4 pb-14 pt-20 text-center">
+          <div className="mb-5 flex justify-center">
+            <Wordmark href={null} markClass="h-11 w-11" showText={false} />
+          </div>
+          <div className="kicker text-center">Institutional market analysis, on demand</div>
+          <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight tracking-tight text-gray-100 sm:text-5xl">
+            The first-pass prospectus <span className="text-brand-400">on any market.</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-gray-400">
+            Name a sector — or a single startup — and Prospectus returns the document an associate
+            would take a week to draft: the field mapped and ranked, financials benchmarked by stage,
+            the return math worked, and a recommendation at a price. In about 20 minutes.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <a href="/demo" className="btn-primary">See a live memo</a>
+            <a href="/app" className="btn-secondary">Open the app</a>
+          </div>
+          <p className="mt-3 text-xs text-gray-600">No sign-up to explore the examples · decision-support, not investment advice</p>
+        </section>
 
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        {/* Page title — only on the launch console (the report brings its own masthead) */}
-        {showForm && (
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-100">New analysis</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Multi-agent consensus pipeline for VC-grade sector analysis &amp; market mapping
+        {/* What you get */}
+        <section className="mx-auto max-w-4xl px-4 pb-14">
+          <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-5">
+            <div className="kicker">The deliverable</div>
+            <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-300">
+              A 13-section, <span className="font-medium text-gray-100">verdict-first memo</span> — top pick and
+              INVEST / WATCH / PASS at a stated valuation, the one non-consensus insight, and a dated prediction —
+              beside a live instrument panel: a 2×2 market map, a weighted scorecard with the a16z moat breakdown,
+              per-startup letter grades, a stage-benchmarked financial ledger, exit precedents, and a fund-fit panel.
+              Export a full PDF, a one-page tear sheet, Markdown, or JSON.
             </p>
           </div>
-        )}
+        </section>
 
-        <div className="space-y-6">
-          {/* Config Form — only show when no task is active (renders its own 2×2 card grid) */}
-          {showForm && <ResearchForm onSubmit={handleSubmit} isLoading={isLoading} />}
-
-          {/* Error Banner (submit errors) */}
-          {error && (
-            <div className="card no-print border-red-900/60 bg-red-950/20">
-              <p className="text-sm font-semibold text-red-300">Submit error</p>
-              <p className="mt-1 text-sm text-red-300/90">{error}</p>
-            </div>
-          )}
-
-          {/* Live Status / Polling — stays visible even on failure */}
-          {taskId && !completedResult && (
-            <div className="no-print">
-              <ResearchStatus taskId={taskId} onComplete={handleComplete} />
-            </div>
-          )}
-
-          {/* Failed Result — show error details */}
-          {completedResult && completedResult.status === "FAILURE" && (
-            <div className="card no-print space-y-3 border-red-900/60">
-              <h3 className="flex items-center gap-2 text-base font-semibold text-red-400">
-                <Icon name="alert" className="h-4 w-4" />
-                Pipeline failed
-              </h3>
-              {completedResult.error && (
-                <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-red-900 bg-red-950/30 p-4 font-mono text-xs text-red-300">
-                  {completedResult.error}
-                </pre>
-              )}
-              {completedResult.agent_logs.length > 0 && (
-                <div>
-                  <div className="mb-1 text-xs text-gray-500">Last agent activity before failure</div>
-                  <div className="divide-y divide-gray-800/70 rounded-md border border-gray-800 bg-gray-900/60">
-                    {completedResult.agent_logs.map((log, i) => (
-                      <div key={i} className="px-3 py-1 text-[11px] leading-5 text-gray-500">
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Final Report */}
-          {completedResult && completedResult.status === "SUCCESS" && (
-            <ReportViewer result={completedResult} />
-          )}
-
-          {/* New Analysis Button — always visible when there's a result or stopped task */}
-          {(completedResult || error) && (
-            <div className="no-print text-center">
-              <button onClick={handleReset} className="btn-primary">
-                Start new analysis
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Why trust it */}
+        <section className="mx-auto max-w-4xl px-4 pb-16">
+          <div className="mb-4 text-center">
+            <div className="kicker text-center">Why the numbers hold up</div>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-gray-100">Built to be audited, not just read</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Trust icon="check" title="Two AIs argue before you read a word">
+              Independent analysts on different providers (Google and Anthropic) write competing analyses; a third-party
+              referee forces every disagreement to resolution. Where one model hallucinates, the other contests it.
+            </Trust>
+            <Trust icon="key" title="Software does the math, not the AI">
+              Rankings, return ranges, dilution, multiples, grades, and fund math are computed in code from the analysts&rsquo;
+              raw inputs — so the scorecard can&rsquo;t contradict the map and your weights have an exact effect.
+            </Trust>
+            <Trust icon="clock" title="Researched live, dated, and linked">
+              35–45 web searches per run with a fresh-news pass on every startup, citations taken from the actual searches,
+              and a &ldquo;Data as of&rdquo; badge that flags stale evidence.
+            </Trust>
+            <Trust icon="alert" title="It tells you what it doesn't know">
+              Undisclosed metrics say &ldquo;Not Disclosed,&rdquo; thin-data companies get approximate scores, and every
+              memo ends with what was and wasn&rsquo;t diligenced.
+            </Trust>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <a href="/demo" className="btn-primary">Explore three real memos</a>
+            <a href="/docs" className="btn-secondary">How it works</a>
+          </div>
+        </section>
 
         {/* Footer */}
-        <footer className="mt-12 border-t border-gray-800 pt-5 text-center text-xs text-gray-500">
-          Decision-support only — not investment advice.
-          <span className="mx-2 text-gray-700">|</span>
-          <a href="/terms" className="underline hover:text-gray-300">Terms of Use</a>
+        <footer className="border-t border-gray-800">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-gray-500 sm:flex-row">
+            <Wordmark href="/" markClass="h-4 w-4" textClass="text-xs" />
+            <div>
+              Decision-support only — not investment advice.
+              <span className="mx-2 text-gray-700">|</span>
+              <a href="/terms" className="underline hover:text-gray-300">Terms of Use</a>
+            </div>
+          </div>
         </footer>
       </main>
     </>

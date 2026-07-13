@@ -119,7 +119,7 @@ export default function PrintableReport({ report }: { report: FinalReport }) {
 
   return (
     <div className="printable">
-      <h1>VC Market Analysis{sector ? ` — ${sector}` : ""}</h1>
+      <h1>Prospectus{sector ? ` — ${sector}` : ""}</h1>
       <p className="print-meta">{meta.join("  ·  ")}</p>
 
       {map && (

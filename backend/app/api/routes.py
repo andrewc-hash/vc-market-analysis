@@ -29,6 +29,7 @@ from app.models.schemas import (
     UploadResponse,
 )
 from app.services.auth import resolve_owner
+from app.services.clerk_auth import clerk_enabled, verify_clerk_token
 from app.worker.tasks import run_research_pipeline
 from app.worker.celery_app import celery_app
 
@@ -51,10 +52,27 @@ _READ_CHUNK = 1024 * 1024  # stream uploads in 1MB chunks so the cap aborts earl
 _AGGREGATE_FILES_FACTOR = 4  # per-request total cap = max_upload_mb * this
 
 
-def require_owner(x_api_key: str | None = Header(default=None)) -> str | None:
-    """None = auth disabled (single-operator mode); str = authenticated owner; 401 otherwise."""
+def require_owner(
+    x_api_key: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
+) -> str | None:
+    """None = auth disabled (single-operator mode); str = authenticated owner; 401 otherwise.
+
+    Hosted multi-user mode (Clerk) takes precedence when configured: a valid
+    `Authorization: Bearer <jwt>` is REQUIRED and its verified subject is the owner.
+    Otherwise the static X-API-Key pilot auth applies (empty api_keys = disabled).
+    """
+    settings = get_settings()
+    if clerk_enabled(settings):
+        token = ""
+        if authorization and authorization.lower().startswith("bearer "):
+            token = authorization[7:].strip()
+        try:
+            return verify_clerk_token(token, settings)
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Invalid or missing bearer token (Authorization header).")
     try:
-        return resolve_owner(get_settings().api_keys, x_api_key)
+        return resolve_owner(settings.api_keys, x_api_key)
     except PermissionError:
         raise HTTPException(status_code=401, detail="Invalid or missing API key (X-API-Key header).")
 

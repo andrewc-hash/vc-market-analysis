@@ -120,7 +120,7 @@ vc-market-analysis/
 │   │     test_focal.py (27) · test_ingest.py (8) · test_scope.py (16)
 │   │     test_structured_artifacts.py (103) · test_filters_sliders.py (27) · test_fund_math.py (53)
 │   │     test_repositioning.py (71) · test_freshness.py (65) · test_gradesheet.py (45) · test_trust.py (76)
-│   │     test_captable.py (30) · test_call_claims.py (26) · test_delta.py (29) — 576 total; run from REPO ROOT
+│   │     test_captable.py (30) · test_call_claims.py (26) · test_delta.py (29) · test_clerk_auth.py (14) — 590 total; run from REPO ROOT
 │   └── app/
 │       ├── config.py            ← Settings: model IDs, keys, Redis URLs, uploads_dir, reports_dir, vision_model, max_upload_mb
 │       ├── main.py              ← FastAPI factory; CORS→localhost:3000; GET /health
@@ -257,6 +257,7 @@ Requires `backend/.env` (copy from `backend/.env.example`, fill all 5 API keys).
 | `MAX_UPLOAD_MB` | Per-file upload cap (default **25**) |
 | `GROUNDED_SEARCH` | Enable the researcher's `search_google_live` Gemini-grounded tool (default **true**; Gemini researcher only — burns Gemini grounding quota, not Tavily credits) |
 | `API_KEYS` | Pilot auth: `"alice:key1,bob:key2"` requires `X-API-Key` on all /api endpoints + per-owner History (default **empty = auth disabled**) |
+| `CLERK_ISSUER` / `CLERK_JWKS_URL` | Hosted multi-user sign-in (Clerk — Google / email magic-link). Empty = disabled (X-API-Key path stays in force). When set, /api endpoints require `Authorization: Bearer <Clerk JWT>`; the verified user id becomes the owner (`services/clerk_auth.py`, RS256 via JWKS; PyJWT imported lazily). `CLERK_JWKS_URL` defaults to `<issuer>/.well-known/jwks.json`. **Backend layer only — the frontend `<SignIn/>` + deployed backend are still to be wired.** |
 | `UPLOADS_ENABLED` | `false` = public-data mode: uploads 403 + UI dropzone hidden (default **true**) |
 | `LOG_LEVEL` | default `INFO` |
 

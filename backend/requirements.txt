@@ -27,6 +27,9 @@ langchain-core==1.4.8
 tavily-python==0.5.0
 httpx==0.28.1
 
+# === Auth (hosted multi-user sign-in via Clerk; imported lazily, only used when CLERK_ISSUER is set) ===
+PyJWT[crypto]==2.9.0
+
 # === Utilities ===
 orjson==3.10.12
 uuid7==0.1.0

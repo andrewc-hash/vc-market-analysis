@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     # Pilot auth: "" = disabled (local single-operator, pre-auth behavior);
     # "alice:key1,bob:key2" = required X-API-Key on all /api endpoints + per-owner History.
     api_keys: str = ""
+    # Hosted multi-user sign-in (Clerk — Google / email magic-link). "" = disabled
+    # (the X-API-Key path above stays in force). When set, /api endpoints require a
+    # valid Clerk session token as `Authorization: Bearer <jwt>`; the verified user id
+    # becomes the request owner (reuses the existing per-owner isolation). Set both to
+    # your Clerk instance's Frontend API / issuer URL; jwks_url defaults to
+    # <issuer>/.well-known/jwks.json when left blank.
+    clerk_issuer: str = ""
+    clerk_jwks_url: str = ""
     # Public-data mode for hosted pilots: uploads carry confidential material to
     # third-party LLM APIs, so gate them OFF where no data-handling agreements exist.
     uploads_enabled: bool = True

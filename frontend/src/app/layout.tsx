@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Source_Serif_4 } from "next/font/google";
+import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 // Inter for app chrome (tabular numerals on data), Source Serif 4 for the
-// memo reading pane — loaded at build time via next/font (no runtime dep).
+// memo reading pane, JetBrains Mono for instrumentation micro-labels
+// (kickers/labels/chips) — loaded at build time via next/font (no runtime dep).
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jbmono", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Prospectus — first-pass IC memos on any market",
@@ -19,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${serif.variable}`}>
+    <html lang="en" className={`${inter.variable} ${serif.variable} ${mono.variable}`}>
       <body className="min-h-screen font-sans">{children}</body>
     </html>
   );

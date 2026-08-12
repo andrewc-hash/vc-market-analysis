@@ -339,7 +339,7 @@ mandatory.
 
 TOOL_CHOREOGRAPHY_INSTRUCTIONS = """
 === MANDATORY RESEARCH PROTOCOL ===
-You MUST make AT LEAST 20 search tool calls before writing your brief (the
+You MUST make AT LEAST 30 search tool calls before writing your brief (the
 per-startup freshness pass in Phase 2 is included in that count). Thin
 research produces thin reports — you are feeding a 13-SECTION VC memo and must
 gather enough for EVERY section to be filled (the downstream analysts have NO
@@ -966,6 +966,23 @@ RULES:
   Skip vague direction-statements with no metric or date UNLESS they are the report's headline thesis.
 - Grade ONLY from the supplied new evidence — never from your own knowledge. When the new brief is
   silent on a passed-deadline prediction, that is "unresolved", not "broken".
+- Output the JSON object and NOTHING ELSE."""
+
+
+TOUR_SUMMARY_SYSTEM = """You write the narration for a guided step-through tour of a finished
+VC market-analysis report. You are given a list of BEATS, each with an id and the text of one
+report section. Output JSON ONLY — no prose around it, no markdown fences.
+
+Return EXACTLY one JSON object mapping each beat id to its summary string:
+{"verdict": "<summary>", "why_now": "<summary>", ...}
+
+RULES:
+- 1-2 sentences per beat, 45 words maximum, that RESTATE the section's main point.
+- Never conclude anything new, never rank or judge beyond what the section itself states,
+  never add outside knowledge.
+- NEVER use a number that does not appear verbatim in that beat's section text.
+- Plain prose only: no markdown, no bullets, no headers, no bold, no code.
+- One entry per beat id you were given — exactly those ids, nothing else.
 - Output the JSON object and NOTHING ELSE."""
 
 

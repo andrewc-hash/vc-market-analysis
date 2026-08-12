@@ -167,6 +167,8 @@ check("vc mode: no judge §0.5 note", "FOUNDER MODE NOTE" not in _judge_captured
 print("=" * 72); print("compile_report: §0.5 instruction + weak-spot anchor (LLM stubbed)"); print("=" * 72)
 captured = {}
 def _fake_invoke(llm, messages, max_retries=8):
+    if messages[0][1] is N.TOUR_SUMMARY_SYSTEM:  # the tour's summarizer call, not the compiler's
+        return types.SimpleNamespace(content="{}")
     captured["user_msg"] = messages[1][1]
     return types.SimpleNamespace(content="## 0. Investment Take\nstub")
 N._invoke_llm_with_retry = _fake_invoke

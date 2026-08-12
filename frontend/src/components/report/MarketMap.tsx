@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { MarketMap as MarketMapData } from "@/lib/api";
 import { segmentColors, radiusFor } from "@/lib/viz";
 
@@ -10,6 +10,9 @@ interface Props {
   onSelect?: (name: string) => void;
   // Light palette for the printed memo (the dark plot looks broken on white paper).
   light?: boolean;
+  // Side layout: plot fills the viewport height on the left, vertical key on the right
+  // (for the full-width Market Map tab — the stacked layout is kept for print).
+  side?: boolean;
 }
 
 const W = 480;
@@ -51,7 +54,7 @@ const LIGHT = {
   highlight: "#ca8a04", // amber-600 — yellow is invisible on white
 };
 
-export default function MarketMap({ map, ranking = [], onSelect, light = false }: Props) {
+export default function MarketMap({ map, ranking = [], onSelect, light = false, side = false }: Props) {
   const [hover, setHover] = useState<string | null>(null);
   const T = light ? LIGHT : DARK;
   const colors = segmentColors(map.companies.filter((c) => !c.is_incumbent).map((c) => c.segment));
@@ -68,11 +71,11 @@ export default function MarketMap({ map, ranking = [], onSelect, light = false }
     anchor: qx === "high" ? "end" : "start",
   });
 
-  return (
-    <div>
+  const svgEl = (
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full h-auto"
+        className={side ? "h-full max-w-full" : "w-full h-auto"}
+        style={side ? { aspectRatio: `${W} / ${H}`, width: "auto" } : undefined}
         role="img"
         aria-label={`Market map plotting ${map.axes.x.label} against ${map.axes.y.label}`}
       >
@@ -81,12 +84,24 @@ export default function MarketMap({ map, ranking = [], onSelect, light = false }
         <line x1={px(50)} y1={MT} x2={px(50)} y2={MT + PH} stroke={T.grid} strokeDasharray="4 4" />
         <line x1={ML} y1={py(50)} x2={ML + PW} y2={py(50)} stroke={T.grid} strokeDasharray="4 4" />
 
-        {/* quadrant names */}
+        {/* quadrant names — in the side (exhibit) layout they step back to tracked
+            small-caps so they read as plot furniture, not company labels. The stacked
+            layout (print PDF + Present) is untouched. */}
         {map.quadrants.map((q, i) => {
           const c = corner(q.x, q.y);
           return (
-            <text key={i} x={c.x} y={c.y} textAnchor={c.anchor as "start" | "end"} fontSize="10.5" fill={T.quadrant}>
-              {q.name}
+            <text
+              key={i}
+              x={c.x}
+              y={c.y}
+              textAnchor={c.anchor as "start" | "end"}
+              fontSize={side ? 8.5 : 10.5}
+              fontWeight={side ? 500 : undefined}
+              letterSpacing={side ? "0.09em" : undefined}
+              opacity={side ? 0.85 : undefined}
+              fill={T.quadrant}
+            >
+              {side ? q.name.toUpperCase() : q.name}
             </text>
           );
         })}
@@ -143,9 +158,15 @@ export default function MarketMap({ map, ranking = [], onSelect, light = false }
                 y={py(c.y) - r - 3}
                 textAnchor="middle"
                 fontSize="10"
-                fontWeight={isTop ? 700 : 400}
+                fontWeight={isTop ? 700 : side ? 500 : 400}
                 fontStyle={inc ? "italic" : undefined}
                 fill={inc ? T.incumbentLabel : T.companyLabel}
+                // Side layout only: a plot-background halo keeps company names legible
+                // where they cross gridlines/bubbles (print + Present untouched).
+                stroke={side ? T.plotBg : undefined}
+                strokeWidth={side ? 3 : undefined}
+                strokeLinejoin={side ? "round" : undefined}
+                paintOrder={side ? "stroke" : undefined}
               >
                 {c.name}
               </text>
@@ -153,15 +174,24 @@ export default function MarketMap({ map, ranking = [], onSelect, light = false }
           );
         })}
 
-        {/* x-axis label + ends */}
-        <text x={ML + PW / 2} y={H - 14} textAnchor="middle" fontSize="12" fontWeight={600} fill={T.axisLabel}>
-          {map.axes.x.label}
+        {/* x-axis label + ends — side layout tightens them into the tracked
+            instrument voice; stacked (print/Present) keeps the original treatment */}
+        <text
+          x={ML + PW / 2}
+          y={H - 14}
+          textAnchor="middle"
+          fontSize={side ? 10.5 : 12}
+          fontWeight={600}
+          letterSpacing={side ? "0.1em" : undefined}
+          fill={T.axisLabel}
+        >
+          {side ? map.axes.x.label.toUpperCase() : map.axes.x.label}
         </text>
-        <text x={ML} y={H - MB + 16} textAnchor="start" fontSize="9.5" fill={T.axisEnds}>
-          ◀ {map.axes.x.low}
+        <text x={ML} y={H - MB + 16} textAnchor="start" fontSize={side ? 9 : 9.5} fill={T.axisEnds}>
+          {side ? `← ${map.axes.x.low}` : `◀ ${map.axes.x.low}`}
         </text>
-        <text x={ML + PW} y={H - MB + 16} textAnchor="end" fontSize="9.5" fill={T.axisEnds}>
-          {map.axes.x.high} ▶
+        <text x={ML + PW} y={H - MB + 16} textAnchor="end" fontSize={side ? 9 : 9.5} fill={T.axisEnds}>
+          {side ? `${map.axes.x.high} →` : `${map.axes.x.high} ▶`}
         </text>
 
         {/* y-axis label + ends (rotated) */}
@@ -169,59 +199,120 @@ export default function MarketMap({ map, ranking = [], onSelect, light = false }
           x={16}
           y={MT + PH / 2}
           textAnchor="middle"
-          fontSize="12"
+          fontSize={side ? 10.5 : 12}
           fontWeight={600}
+          letterSpacing={side ? "0.1em" : undefined}
           fill={T.axisLabel}
           transform={`rotate(-90 16 ${MT + PH / 2})`}
         >
-          {map.axes.y.label}
+          {side ? map.axes.y.label.toUpperCase() : map.axes.y.label}
         </text>
         <text
           x={ML - 6}
           y={MT + 10}
           textAnchor="end"
-          fontSize="9.5"
+          fontSize={side ? 9 : 9.5}
           fill={T.axisEnds}
           transform={`rotate(-90 ${ML - 6} ${MT + 10})`}
         >
-          {map.axes.y.high} ▲
+          {side ? `${map.axes.y.high} →` : `${map.axes.y.high} ▲`}
         </text>
         <text
           x={ML - 6}
           y={MT + PH}
           textAnchor="start"
-          fontSize="9.5"
+          fontSize={side ? 9 : 9.5}
           fill={T.axisEnds}
           transform={`rotate(-90 ${ML - 6} ${MT + PH})`}
         >
-          ▼ {map.axes.y.low}
+          {side ? `← ${map.axes.y.low}` : `▼ ${map.axes.y.low}`}
         </text>
       </svg>
+  );
 
-      {/* legend */}
+  const segmentEntries = Object.entries(colors).map(([seg, col]) => (
+    <span key={seg} className="inline-flex items-center gap-1.5">
+      <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: col }} />
+      {seg}
+    </span>
+  ));
+  const incumbentEntry = hasIncumbents && (
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-dashed ${
+          light ? "border-slate-500 bg-slate-400/40" : "border-gray-400 bg-gray-500/40"
+        }`}
+      />
+      incumbent (reference)
+    </span>
+  );
+  const footnote = (
+    <p className={`text-[11px] leading-relaxed ${light ? "text-slate-500" : "text-gray-600"}`}>
+      Positions are scored 0–100 on each axis — illustrative framing, not exact measurement.
+    </p>
+  );
+
+  if (side) {
+    // Exhibit key: every symbol sits in a fixed 14px lead column so the color dots
+    // and glyphs align on one vertical grid; headings use the shared .panel-kicker.
+    const keyText = light ? "text-slate-600" : "text-gray-400";
+    const keyGrid = `grid grid-cols-[14px_1fr] gap-x-2 gap-y-1.5 text-xs ${keyText}`;
+    const glyphHi = `justify-self-center ${light ? "text-amber-700" : "text-yellow-300"}`;
+    const glyphLo = `justify-self-center ${light ? "text-slate-400" : "text-gray-500"}`;
+    return (
+      <div className="flex items-center justify-center gap-10">
+        <div className="flex min-w-0 justify-center" style={{ height: "min(70vh, 740px)" }}>{svgEl}</div>
+        <div className="w-60 shrink-0 space-y-5">
+          <div>
+            <div className="panel-kicker mb-2.5">Segments</div>
+            <div className={`${keyGrid} items-baseline`}>
+              {Object.entries(colors).map(([seg, col]) => (
+                <Fragment key={seg}>
+                  <span className="inline-block h-2.5 w-2.5 self-center justify-self-center rounded-full" style={{ background: col }} />
+                  <span className="leading-snug">{seg}</span>
+                </Fragment>
+              ))}
+              {hasIncumbents && (
+                <>
+                  <span
+                    className={`inline-block h-2.5 w-2.5 self-center justify-self-center rounded-full border border-dashed ${
+                      light ? "border-slate-500 bg-slate-400/40" : "border-gray-400 bg-gray-500/40"
+                    }`}
+                  />
+                  <span className="leading-snug">incumbent (reference)</span>
+                </>
+              )}
+            </div>
+          </div>
+          <div>
+            <div className="panel-kicker mb-2.5">Reading the map</div>
+            <div className={keyGrid}>
+              <span className={glyphHi}>◇</span>
+              <span className="leading-snug">investable white space</span>
+              <span className={glyphHi}>◯</span>
+              <span className="leading-snug">ring = field leader (quality #1)</span>
+              <span className={glyphLo}>●</span>
+              <span className="leading-snug">bubble size = capital raised</span>
+              <span className={glyphLo}>→</span>
+              <span className="leading-snug">click a company to open its profile</span>
+            </div>
+          </div>
+          <div className={`border-t pt-3 ${light ? "border-slate-200" : "border-gray-800"}`}>{footnote}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {svgEl}
       <div className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs ${light ? "text-slate-600" : "text-gray-400"}`}>
-        {Object.entries(colors).map(([seg, col]) => (
-          <span key={seg} className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: col }} />
-            {seg}
-          </span>
-        ))}
-        {hasIncumbents && (
-          <span className="inline-flex items-center gap-1.5">
-            <span
-              className={`inline-block h-2.5 w-2.5 rounded-full border border-dashed ${
-                light ? "border-slate-500 bg-slate-400/40" : "border-gray-400 bg-gray-500/40"
-              }`}
-            />
-            incumbent (reference)
-          </span>
-        )}
+        {segmentEntries}
+        {incumbentEntry}
         <span className={light ? "text-amber-700" : "text-yellow-300"}>◇ white space</span>
         <span className={light ? "text-slate-500" : "text-gray-500"}>size = capital raised · ◯ ring = field leader (quality #1)</span>
       </div>
-      <p className={`mt-1 text-[11px] ${light ? "text-slate-500" : "text-gray-600"}`}>
-        Positions are scored 0–100 on each axis — illustrative framing, not exact measurement.
-      </p>
+      <div className="mt-1">{footnote}</div>
     </div>
   );
 }

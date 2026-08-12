@@ -60,6 +60,11 @@ class ResearchState(TypedDict, total=False):
     # --- Judge outputs ---
     judge_critique: str
     judge_agreed: bool
+    # Glass-box debate log: one entry per judge round —
+    # [{round, converged, forced, disagreements: [{point, analyst_a, analyst_b, reconsider}]}].
+    # The judge is the only writer (one append per round), so plain last-write-wins
+    # is correct — deliberately NO reducer.
+    debate_log: list
 
     # --- Iteration tracking ---
     iterations: int

@@ -36,6 +36,20 @@ function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   return fetch(`${API_URL}${path}`, { ...init, headers });
 }
 
+/** One-shot backend liveness probe for the console status chip (GET /health,
+ * unauthenticated, short timeout so a down backend never hangs the shell). */
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${API_URL}/health`, { signal: ctrl.signal, cache: "no-store" });
+    clearTimeout(timer);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface AppConfig {
   auth_required: boolean;
   uploads_enabled: boolean;
@@ -189,6 +203,22 @@ export interface ReturnScenarios {
   expected_return: number | null; // Σ probability × midpoint(multiple), computed in code
   expected_return_low?: number | null; // EV over the low multiples (honest lower bound)
   expected_return_high?: number | null; // EV over the high multiples (honest upper bound)
+}
+
+// Per-round debate log (judge verdicts, recorded by the pipeline). Only present on
+// runs after 2026-07-23 — older History records and the /demo fixtures lack it.
+export interface DebateDisagreement {
+  point: string;
+  analyst_a: string;
+  analyst_b: string;
+  reconsider: string; // the judge's instruction to both analysts for the next round
+}
+
+export interface DebateRound {
+  round: number;
+  converged: boolean;
+  forced: boolean; // round cap reached — compiled with open disagreements
+  disagreements: DebateDisagreement[];
 }
 
 export interface ResearchManifest {
@@ -357,6 +387,23 @@ export interface RunDelta {
   new_expected_return: number | null;
 }
 
+// Present-mode walkthrough steps (backend-emitted; built client-side when absent).
+export type TourVisual = "none" | "map" | "scorecard" | "grades" | "ledger" | "fundfit";
+
+export interface TourStep {
+  id: string;
+  title: string;
+  summary: string;
+  section: number;
+  visual: TourVisual;
+  source: "llm" | "fallback";
+}
+
+export interface Tour {
+  steps: TourStep[];
+  generated: boolean;
+}
+
 // The baseline report's own dated predictions, graded against the new evidence.
 export interface PredictionRow {
   prediction: string;
@@ -371,6 +418,7 @@ export interface FinalReport {
   synthesis?: string;
   research_data?: string;
   research_manifest?: ResearchManifest | null; // tool-call audit (protocol compliance), computed in code
+  debate_log?: DebateRound[] | null; // per-round judge verdicts (Audit tab); absent on pre-2026-07-23 runs
   data_freshness?: DataFreshness | null; // report evidence-recency audit, computed in code
   gradesheet?: Gradesheet | null; // per-startup letter grades, computed in code (Grades tab)
   analyst_a_report?: string;
@@ -398,6 +446,7 @@ export interface FinalReport {
   cap_table?: CapTable | null; // uploaded round-history CSV, parsed in code
   call_claims_audit?: CallClaimsAudit | null; // founder-call claims cross-examined (Claims tab)
   run_delta?: RunDelta | null; // re-run only: code-computed diff vs the baseline
+  tour?: Tour | null; // Present-mode walkthrough (client falls back to lib/tour.ts when absent)
   prediction_audit?: PredictionRow[] | null; // re-run only: baseline predictions graded
   baseline_id?: string; // re-run only: the baseline History record
   baseline_created_at?: string;
@@ -487,6 +536,9 @@ export interface ReportSummary {
   thesis_bias: string;
   label: string;
   starred: boolean;
+  // Longitudinal markers (Tracked view) — set only on re-run records; legacy → null/false.
+  baseline_report_id?: string | null;
+  has_delta?: boolean;
 }
 
 export async function listReports(): Promise<ReportSummary[]> {

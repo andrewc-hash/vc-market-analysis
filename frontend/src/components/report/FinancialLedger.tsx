@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { AcquisitionRow, CapTable, FinancialLedgerData, FundMath, ReturnScenarios } from "@/lib/api";
-import { FLAG_STYLE } from "@/lib/viz";
 
 interface Props {
   ledger: FinancialLedgerData;
@@ -49,6 +48,18 @@ const HEADERS: Record<string, string> = {
   rule_of_40: "Rule of 40",
 };
 
+// Semantic band chips (symbol included so it's never color-only / colorblind-safe).
+const FLAG_CHIP: Record<string, { cls: string; sym: string; label: string }> = {
+  ok: { cls: "border-emerald-900/50 bg-emerald-950/30 text-emerald-300", sym: "✓", label: "meets stage band" },
+  warn: { cls: "border-amber-900/50 bg-amber-950/30 text-amber-300", sym: "!", label: "borderline" },
+  bad: { cls: "border-rose-900/50 bg-rose-950/30 text-rose-300", sym: "✗", label: "off stage band" },
+};
+
+// Left-aligned text columns; everything else is a right-aligned numeric.
+const TEXT_COLS = new Set(["startup", "stage"]);
+
+const panel = "rounded-lg border border-gray-800 bg-gray-900/40 p-4";
+
 export default function FinancialLedger({
   ledger, scenarios, expectedReturn, expectedReturnLow, expectedReturnHigh,
   expectedReturnNetLow, expectedReturnNetHigh, returnAssumptions, returnDominance, acquisitions,
@@ -79,180 +90,253 @@ export default function FinancialLedger({
   };
 
   if (!rows.length) {
-    return <p className="text-sm text-gray-500">No financial ledger available for this run.</p>;
+    return <div className="empty-state">No financial ledger available for this run.</div>;
   }
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-gray-800 text-gray-500">
-            {cols.map((c) => (
-              <th
-                key={c}
-                onClick={() => toggle(c)}
-                className="cursor-pointer whitespace-nowrap px-2 py-1.5 text-left font-medium hover:text-gray-300"
-              >
-                {HEADERS[c] ?? c}
-                {sortCol === c ? (asc ? " ▲" : " ▼") : ""}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className={`border-b border-gray-900 ${row.is_incumbent ? "opacity-50" : ""}`}>
-              {cols.map((c) => {
-                const val = String((row as unknown as Record<string, unknown>)[c] ?? "");
-                const flag = row.flags?.[c];
-                const fs = flag ? FLAG_STYLE[flag] : null;
-                const nd = val === "Not Disclosed";
-                return (
-                  <td key={c} className={`whitespace-nowrap px-2 py-1.5 ${nd ? "text-gray-600 italic" : "text-gray-300"}`}>
-                    {c === "startup" ? (
-                      <span className="font-medium text-gray-100">
-                        {val}
-                        {row.is_incumbent && <span className="ml-1 text-[10px] uppercase tracking-wide text-gray-500">ref</span>}
-                      </span>
-                    ) : val}
-                    {fs && <span className={`ml-1 font-bold ${fs.cls}`} title={fs.label}>{fs.sym}</span>}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="mt-2 text-[11px] text-gray-600">
-        Flags vs. stage band: <span className="text-green-300">✓ ok</span> · <span className="text-amber-300">! borderline</span> · <span className="text-red-300">✗ off-band</span>. <span className="text-gray-500">ref</span> = incumbent (not scored). Val/ARR computed in code. Click a header to sort.
-      </p>
+  const grossIsRange =
+    expectedReturnLow != null && expectedReturnHigh != null && expectedReturnLow !== expectedReturnHigh;
 
+  return (
+    <div className="space-y-4">
+      {/* ── Ledger ─────────────────────────────────────────────────── */}
+      <section className={panel}>
+        <div className="panel-kicker">Ledger — disclosed financials</div>
+        <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+          Stage-banded metrics from research; Val/ARR computed in code. Click a column head to sort.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-800">
+                {cols.map((c) => (
+                  <th
+                    key={c}
+                    onClick={() => toggle(c)}
+                    className={`th-label cursor-pointer whitespace-nowrap px-2 py-1.5 hover:text-gray-300 ${
+                      TEXT_COLS.has(c) ? "text-left" : "text-right"
+                    }`}
+                  >
+                    {HEADERS[c] ?? c}
+                    {sortCol === c ? (asc ? " ▲" : " ▼") : ""}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i} className={`border-b border-gray-900 ${row.is_incumbent ? "opacity-50" : ""}`}>
+                  {cols.map((c) => {
+                    const val = String((row as unknown as Record<string, unknown>)[c] ?? "");
+                    const flag = row.flags?.[c];
+                    const fs = flag ? FLAG_CHIP[flag] : null;
+                    const nd = val === "Not Disclosed";
+                    return (
+                      <td
+                        key={c}
+                        className={`whitespace-nowrap px-2 py-1.5 tabular-nums ${
+                          TEXT_COLS.has(c) ? "text-left" : "text-right"
+                        } ${nd ? "italic text-gray-600" : "text-gray-300"}`}
+                      >
+                        {c === "startup" ? (
+                          <span className="font-medium text-gray-100">
+                            {val}
+                            {row.is_incumbent && (
+                              <span className="ml-1.5 rounded border border-gray-800 bg-gray-900 px-1 font-mono text-[9px] uppercase tracking-wide text-gray-500">
+                                ref
+                              </span>
+                            )}
+                          </span>
+                        ) : val}
+                        {fs && (
+                          <span
+                            className={`ml-1.5 inline-flex items-center justify-center rounded border px-1 font-mono text-[9px] leading-[14px] ${fs.cls}`}
+                            title={fs.label}
+                          >
+                            {fs.sym}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="panel-kicker mr-1">Flags vs stage band</span>
+          {(["ok", "warn", "bad"] as const).map((k) => (
+            <span
+              key={k}
+              className={`inline-flex items-center gap-1 rounded border px-2 py-[3px] font-mono text-[10.5px] leading-4 ${FLAG_CHIP[k].cls}`}
+            >
+              {FLAG_CHIP[k].sym} {FLAG_CHIP[k].label}
+            </span>
+          ))}
+          <span className="chip">ref = incumbent · reference only, not scored</span>
+        </div>
+      </section>
+
+      {/* ── Return scenarios ───────────────────────────────────────── */}
       {scenarios?.scenarios?.length ? (
-        <div className="mt-4 rounded-md border border-gray-800 bg-gray-900/40 p-3">
-          <div className="flex items-baseline justify-between">
-            <h4 className="text-xs font-semibold text-gray-300">
-              Probability-Weighted Return{scenarios.startup ? ` · ${scenarios.startup}` : ""}
-            </h4>
-            {expectedReturn != null && (
-              <span
-                className="text-sm font-bold text-brand-300"
-                title="Gross multiple before dilution, ownership, fees, and time-value — computed in code from the scenario table"
-              >
-                {expectedReturnLow != null && expectedReturnHigh != null && expectedReturnLow !== expectedReturnHigh
-                  ? `${expectedReturnLow}x–${expectedReturnHigh}x`
-                  : `${expectedReturn}x`}{" "}
-                <span className="text-[10px] font-normal text-gray-500">
-                  expected (gross{expectedReturnLow != null && expectedReturnHigh != null && expectedReturnLow !== expectedReturnHigh ? `, mid ${expectedReturn}x` : ""})
-                </span>
-              </span>
-            )}
+        <section className={panel}>
+          <div className="panel-kicker">
+            Return scenarios — probability-weighted{scenarios.startup ? ` · ${scenarios.startup}` : ""}
           </div>
-          {expectedReturnNetLow != null && expectedReturnNetHigh != null && (
-            <p className="mt-0.5 text-right text-[10px] text-gray-500" title={returnAssumptions?.note || ""}>
-              ≈{expectedReturnNetLow}x–{expectedReturnNetHigh}x net of estimated future dilution
-              {returnAssumptions ? ` (${Math.round(returnAssumptions.retention * 100)}% stage-banded retention)` : ""} — computed in code
-            </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+            Expected return = Σ probability × midpoint(multiple) — computed in code, never asserted by the model.
+          </p>
+
+          {(expectedReturn != null ||
+            (expectedReturnNetLow != null && expectedReturnNetHigh != null) ||
+            returnDominance != null) && (
+            <div className="mt-3 grid auto-cols-fr grid-flow-col gap-px overflow-hidden rounded-lg border border-gray-800 bg-gray-800/60">
+              {expectedReturn != null && (
+                <div
+                  className="stat-cell"
+                  title="Gross multiple before dilution, ownership, fees, and time-value — computed in code from the scenario table"
+                >
+                  <div className="stat-value">
+                    {grossIsRange ? `${expectedReturnLow}x–${expectedReturnHigh}x` : `${expectedReturn}x`}
+                  </div>
+                  <div className="stat-caption">
+                    Expected gross{grossIsRange ? ` · mid ${expectedReturn}x` : ""}
+                  </div>
+                </div>
+              )}
+              {expectedReturnNetLow != null && expectedReturnNetHigh != null && (
+                <div className="stat-cell" title={returnAssumptions?.note || ""}>
+                  <div className="stat-value">≈{expectedReturnNetLow}x–{expectedReturnNetHigh}x</div>
+                  <div className="stat-caption">
+                    Net of dilution{returnAssumptions ? ` · ${Math.round(returnAssumptions.retention * 100)}% retention` : ""}
+                  </div>
+                </div>
+              )}
+              {returnDominance != null && (
+                <div className="stat-cell" title="Share of the expected value carried by a single scenario">
+                  <div className="stat-value">{returnDominance.share_pct}%</div>
+                  <div className="stat-caption">EV in {returnDominance.label} case</div>
+                </div>
+              )}
+            </div>
           )}
-          <table className="mt-2 w-full text-[11px]">
+
+          <table className="mt-3 w-full text-[11px]">
+            <thead>
+              <tr className="border-b border-gray-800">
+                <th className="th-label py-1 text-left">Scenario</th>
+                {scenarios.scenarios.some((x) => x.path) && (
+                  <th className="th-label py-1 pl-2 text-left">Path</th>
+                )}
+                <th className="th-label py-1 text-right">Prob</th>
+                <th className="th-label py-1 text-right">Multiple</th>
+              </tr>
+            </thead>
             <tbody>
               {scenarios.scenarios.map((s, i) => {
                 const lo = s.multiple_low, hi = s.multiple_high;
                 const mult = lo == null && hi == null ? "—" : lo === hi ? `${lo}x` : `${lo}x–${hi}x`;
                 return (
                   <tr key={i} className="border-b border-gray-900 last:border-0">
-                    <td className="py-1 capitalize text-gray-400">{s.label}</td>
+                    <td className="py-1.5 capitalize text-gray-300">{s.label}</td>
                     {scenarios.scenarios.some((x) => x.path) && (
-                      <td className="max-w-[220px] truncate py-1 pl-2 text-gray-500" title={s.path || ""}>{s.path || "—"}</td>
+                      <td className="max-w-[220px] truncate py-1.5 pl-2 text-gray-500" title={s.path || ""}>{s.path || "—"}</td>
                     )}
-                    <td className="py-1 text-right text-gray-400">{Math.round(s.probability * 100)}%</td>
-                    <td className="py-1 text-right text-gray-300">{mult}</td>
+                    <td className="py-1.5 text-right tabular-nums text-gray-400">{Math.round(s.probability * 100)}%</td>
+                    <td className="py-1.5 text-right tabular-nums text-gray-200">{mult}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <p className="mt-1 text-[10px] text-gray-600">
-            Expected return = Σ probability × midpoint(multiple), computed in code.
+          <p className="mt-2 text-[10.5px] text-gray-600">
+            Gross of fund fees, ownership, and time-value.
             {returnDominance ? ` ${returnDominance.share_pct}% of the expected value sits in the ${returnDominance.label} case.` : ""}
           </p>
-        </div>
+        </section>
       ) : null}
 
+      {/* ── Exit precedents ────────────────────────────────────────── */}
       {acquisitions?.length ? (
-        <div className="mt-4 rounded-md border border-gray-800 bg-gray-900/40 p-3">
-          <h4 className="text-xs font-semibold text-gray-300">Exit Precedents — Sector Acquisitions</h4>
-          <table className="mt-2 w-full text-[11px]">
+        <section className={panel}>
+          <div className="panel-kicker">Exit precedents — sector acquisitions</div>
+          <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+            Research-sourced deals only, validated in code — never invented. The weakest comparable anchors the downside scenario.
+          </p>
+          <table className="mt-3 w-full text-[11px]">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-500">
-                <th className="py-1 text-left font-medium">Target</th>
-                <th className="py-1 text-left font-medium">Acquirer</th>
-                <th className="py-1 text-left font-medium">Announced</th>
-                <th className="py-1 text-right font-medium">Value</th>
-                <th className="py-1 text-right font-medium">Target Raised</th>
-                <th className="py-1 text-right font-medium" title="Deal value ÷ target's total raised — computed in code">× capital</th>
+              <tr className="border-b border-gray-800">
+                <th className="th-label py-1 text-left">Target</th>
+                <th className="th-label py-1 text-left">Acquirer</th>
+                <th className="th-label py-1 text-left">Announced</th>
+                <th className="th-label py-1 text-right">Value</th>
+                <th className="th-label py-1 text-right">Target Raised</th>
+                <th className="th-label py-1 text-right" title="Deal value ÷ target's total raised — computed in code">× capital</th>
               </tr>
             </thead>
             <tbody>
               {acquisitions.map((a, i) => (
                 <tr key={i} className="border-b border-gray-900 last:border-0">
-                  <td className="py-1 font-medium text-gray-200">{a.target}</td>
-                  <td className="py-1 text-gray-400">{a.acquirer}</td>
-                  <td className="py-1 text-gray-400">{a.announced}</td>
-                  <td className={`py-1 text-right ${a.value === "Not Disclosed" ? "italic text-gray-600" : "text-gray-300"}`}>{a.value}</td>
-                  <td className={`py-1 text-right ${a.target_total_raised === "Not Disclosed" ? "italic text-gray-600" : "text-gray-300"}`}>{a.target_total_raised}</td>
-                  <td className="py-1 text-right text-gray-300">{a.multiple_on_capital != null ? `${a.multiple_on_capital}x` : "—"}</td>
+                  <td className="py-1.5 font-medium text-gray-200">{a.target}</td>
+                  <td className="py-1.5 text-gray-400">{a.acquirer}</td>
+                  <td className="py-1.5 tabular-nums text-gray-400">{a.announced}</td>
+                  <td className={`py-1.5 text-right tabular-nums ${a.value === "Not Disclosed" ? "italic text-gray-600" : "text-gray-300"}`}>{a.value}</td>
+                  <td className={`py-1.5 text-right tabular-nums ${a.target_total_raised === "Not Disclosed" ? "italic text-gray-600" : "text-gray-300"}`}>{a.target_total_raised}</td>
+                  <td className="py-1.5 text-right tabular-nums text-gray-300">{a.multiple_on_capital != null ? `${a.multiple_on_capital}x` : "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="mt-1 text-[10px] text-gray-600">
-            Research-sourced deals only (validated in code, never invented). The weakest comparable anchors the downside scenario.
-          </p>
-        </div>
+        </section>
       ) : null}
 
+      {/* ── Cap table (when uploaded) ──────────────────────────────── */}
       {capTable?.rounds?.length ? (
-        <div className="mt-4 rounded-md border border-gray-800 bg-gray-900/40 p-3">
-          <h4 className="text-xs font-semibold text-gray-300">
-            Cap Table — uploaded round history <span className="font-normal text-gray-500">({capTable.source_file})</span>
-          </h4>
-          <table className="mt-2 w-full text-[11px]">
+        <section className={panel}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div className="panel-kicker">Cap table — uploaded round history</div>
+            <span className="chip">{capTable.source_file}</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+            Parsed in code from the uploaded CSV. Grounds the focal&rsquo;s ledger row and the fund-math entry price.
+          </p>
+          <table className="mt-3 w-full text-[11px]">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-500">
-                <th className="py-1 text-left font-medium">Round</th>
-                <th className="py-1 text-left font-medium">Date</th>
-                <th className="py-1 text-right font-medium">Raised</th>
-                <th className="py-1 text-right font-medium">Post-money</th>
-                <th className="py-1 text-left font-medium">Investors</th>
+              <tr className="border-b border-gray-800">
+                <th className="th-label py-1 text-left">Round</th>
+                <th className="th-label py-1 text-left">Date</th>
+                <th className="th-label py-1 text-right">Raised</th>
+                <th className="th-label py-1 text-right">Post-money</th>
+                <th className="th-label py-1 pl-2 text-left">Investors</th>
               </tr>
             </thead>
             <tbody>
               {capTable.rounds.map((r, i) => (
                 <tr key={i} className="border-b border-gray-900 last:border-0">
-                  <td className="py-1 font-medium text-gray-200">{r.round}</td>
-                  <td className="py-1 tabular-nums text-gray-400">{r.date || "—"}</td>
-                  <td className="py-1 text-right tabular-nums text-gray-300">{musd(r.raised_musd)}</td>
-                  <td className="py-1 text-right tabular-nums text-gray-300">{musd(r.post_money_musd)}</td>
-                  <td className="max-w-[140px] truncate py-1 pl-2 text-gray-500" title={r.investors}>{r.investors || "—"}</td>
+                  <td className="py-1.5 font-medium text-gray-200">{r.round}</td>
+                  <td className="py-1.5 tabular-nums text-gray-400">{r.date || "—"}</td>
+                  <td className="py-1.5 text-right tabular-nums text-gray-300">{musd(r.raised_musd)}</td>
+                  <td className="py-1.5 text-right tabular-nums text-gray-300">{musd(r.post_money_musd)}</td>
+                  <td className="max-w-[140px] truncate py-1.5 pl-2 text-gray-500" title={r.investors}>{r.investors || "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="mt-1 text-[10px] text-gray-600">
-            Parsed in code from the uploaded CSV — total raised {musd(capTable.total_raised_musd)}
+          <p className="mt-2 text-[10.5px] tabular-nums text-gray-600">
+            Total raised {musd(capTable.total_raised_musd)}
             {capTable.latest_post_money_musd != null ? <> · latest post {musd(capTable.latest_post_money_musd)} ({capTable.latest_round})</> : null}.
-            Grounds the focal&rsquo;s ledger row and the fund-math entry price.
           </p>
-        </div>
+        </section>
       ) : null}
 
+      {/* ── Fund Fit (when fund economics were provided) ───────────── */}
       {fundMath ? (() => {
         const a = fundMath.assumptions, v = fundMath.verdicts, req = fundMath.requirements, e = fundMath.expected;
         const nRet = fundMath.scenarios.filter((s) => s.returns_fund).length;
         return (
-          <div className="mt-4 rounded-md border border-brand-500/30 bg-brand-600/5 p-3">
-            <h4 className="text-xs font-semibold text-brand-200">Fund Fit — does this return the fund?</h4>
-            <p className="mt-1 text-[11px] text-gray-400">
+          <section className="rounded-lg border border-brand-500/30 bg-gray-900/40 p-4">
+            <div className="panel-kicker text-brand-300">Fund fit — does this return the fund?</div>
+            <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
               For a {musd(a.fund_size_musd)} fund, a {musd(a.check_size_musd)} check
               {a.entry_post_money_musd != null ? ` at ${musd(a.entry_post_money_musd)} post` : ""}
               {a.entry_ownership_pct != null
@@ -260,57 +344,84 @@ export default function FinancialLedger({
                 : ""}{" "}
               (after {Math.round((1 - a.retention) * 100)}% dilution to exit).
             </p>
-            <table className="mt-2 w-full text-[11px]">
+
+            {/* verdict readout — instrument cells */}
+            <div className="mt-3 grid auto-cols-fr grid-flow-col gap-px overflow-hidden rounded-lg border border-gray-800 bg-gray-800/60">
+              <div className="stat-cell" title={`Best case ${v.best_case_net_turns}x of the fund`}>
+                <div className={`stat-value ${v.can_return_fund ? "text-emerald-300" : "text-amber-300"}`}>
+                  {nRet}/{fundMath.scenarios.length}
+                </div>
+                <div className="stat-caption">Scenarios return the fund</div>
+              </div>
+              <div
+                className="stat-cell"
+                title={`${req.required_net_MoIC}x net${req.required_gross_MoIC != null ? ` / ${req.required_gross_MoIC}x gross` : ""} on the check`}
+              >
+                <div className="stat-value">
+                  {req.required_exit_value_musd != null ? `~${musd(req.required_exit_value_musd)}` : `${req.required_net_MoIC}x net`}
+                </div>
+                <div className="stat-caption">Exit to return the fund</div>
+              </div>
+              <div className="stat-cell">
+                <div className={`stat-value ${v.is_fund_maker ? "text-emerald-300" : "text-gray-300"}`}>
+                  {v.is_fund_maker ? "Yes" : "No"}
+                </div>
+                <div className="stat-caption">Fund-maker · ≥{req.target_fund_multiple}x fund</div>
+              </div>
+              {e != null && (
+                <div className="stat-cell">
+                  <div className="stat-value">{e.expected_net_MoIC}x</div>
+                  <div className="stat-caption">Expected net MoIC</div>
+                </div>
+              )}
+            </div>
+
+            <table className="mt-3 w-full text-[11px]">
               <thead>
-                <tr className="border-b border-gray-800 text-gray-500">
-                  <th className="py-1 text-left font-medium">Scenario</th>
-                  <th className="py-1 text-right font-medium">Prob</th>
-                  <th className="py-1 text-right font-medium">Net MoIC</th>
-                  <th className="py-1 text-right font-medium">Net proceeds</th>
-                  <th className="py-1 text-right font-medium">Turns of fund</th>
-                  <th className="py-1 text-right font-medium">Net IRR</th>
+                <tr className="border-b border-gray-800">
+                  <th className="th-label py-1 text-left">Scenario</th>
+                  <th className="th-label py-1 text-right">Prob</th>
+                  <th className="th-label py-1 text-right">Net MoIC</th>
+                  <th className="th-label py-1 text-right">Net proceeds</th>
+                  <th className="th-label py-1 text-right">Turns of fund</th>
+                  <th className="th-label py-1 text-right">Net IRR</th>
                 </tr>
               </thead>
               <tbody>
                 {fundMath.scenarios.map((s, i) => (
                   <tr key={i} className={`border-b border-gray-900 last:border-0 ${s.returns_fund ? "text-brand-200" : "text-gray-300"}`}>
-                    <td className="py-1 capitalize">{s.label}{s.returns_fund ? " ★" : ""}</td>
-                    <td className="py-1 text-right text-gray-400">{Math.round(s.probability * 100)}%</td>
-                    <td className="py-1 text-right">{s.net_MoIC}x</td>
-                    <td className="py-1 text-right">{musd(s.net_proceeds_musd)}</td>
-                    <td className="py-1 text-right">{s.net_turns}x</td>
-                    <td className="py-1 text-right">{s.net_irr_pct == null ? "—" : `${s.net_irr_pct > 0 ? "+" : ""}${s.net_irr_pct}%`}</td>
+                    <td className="py-1.5 capitalize">{s.label}{s.returns_fund ? " ★" : ""}</td>
+                    <td className="py-1.5 text-right tabular-nums text-gray-400">{Math.round(s.probability * 100)}%</td>
+                    <td className="py-1.5 text-right tabular-nums">{s.net_MoIC}x</td>
+                    <td className="py-1.5 text-right tabular-nums">{musd(s.net_proceeds_musd)}</td>
+                    <td className="py-1.5 text-right tabular-nums">{s.net_turns}x</td>
+                    <td className="py-1.5 text-right tabular-nums">{s.net_irr_pct == null ? "—" : `${s.net_irr_pct > 0 ? "+" : ""}${s.net_irr_pct}%`}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="mt-2 space-y-0.5 text-[11px]">
-              <p className={v.can_return_fund ? "text-green-300" : "text-amber-300"}>
-                {v.can_return_fund ? "✓" : "✗"} Returns the fund in {nRet}/{fundMath.scenarios.length} modelled scenarios
-                {" "}(best case {v.best_case_net_turns}x of the fund).
-              </p>
-              <p className="text-gray-400">
-                Needs {req.required_exit_value_musd != null ? `a ~${musd(req.required_exit_value_musd)} exit ` : ""}
-                ({req.required_net_MoIC}x net{req.required_gross_MoIC != null ? ` / ${req.required_gross_MoIC}x gross` : ""} on the check) to return the fund.
-              </p>
-              <p className="text-gray-400">
-                Fund-maker (≥{req.target_fund_multiple}x the fund): <span className={v.is_fund_maker ? "text-green-300" : "text-gray-300"}>{v.is_fund_maker ? "Yes" : "No"}</span>.
-                {e != null && (
-                  <> Expected: {e.expected_net_MoIC}x net · {e.expected_net_turns}x of fund
-                  {e.expected_net_irr_pct != null ? ` · ${e.expected_net_irr_pct > 0 ? "+" : ""}${e.expected_net_irr_pct}% IRR` : ""}.</>
-                )}
-              </p>
-            </div>
+            <p className="mt-2 text-[10.5px] tabular-nums text-gray-500">
+              Best case {v.best_case_net_turns}x of the fund
+              {e != null ? (
+                <>
+                  {" "}· expected {e.expected_net_turns}x of fund
+                  {e.expected_net_irr_pct != null ? ` · ${e.expected_net_irr_pct > 0 ? "+" : ""}${e.expected_net_irr_pct}% expected net IRR` : ""}
+                </>
+              ) : null}
+              . ★ = returns the fund.
+            </p>
             {fundMath.flags.length > 0 && (
-              <p className="mt-1 text-[10px] text-amber-400/80">
-                {fundMath.flags.map((f) => FUND_FLAG_LABELS[f] || f).join(" · ")}
-              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {fundMath.flags.map((f) => (
+                  <span key={f} className="chip-warn">{FUND_FLAG_LABELS[f] || f}</span>
+                ))}
+              </div>
             )}
-            <p className="mt-1 text-[10px] text-gray-600">
+            <p className="mt-2 text-[10.5px] text-gray-600">
               Computed in code from the scenario table + your fund inputs. Net = gross × stage dilution retention;
               turns and IRR are gross of fund fees/carry. Reserves/follow-on not modelled.
             </p>
-          </div>
+          </section>
         );
       })() : null}
     </div>

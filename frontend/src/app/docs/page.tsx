@@ -83,7 +83,7 @@ export default function DocsPage() {
         <div className="mb-10">
           <div className="kicker">Documentation</div>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-gray-100">
-            A first-pass IC memo on any market, <span className="text-brand-400">in 20 minutes</span>.
+            A first-pass IC memo on any market, <span className="text-brand-400">in under an hour</span>.
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-gray-400">
             Name a sector — or a specific company — and get the document an associate would take a week to draft:
@@ -260,7 +260,7 @@ export default function DocsPage() {
               from the startup for you to confirm. Set weights, stage, geography, and a Bear / Base / Bull posture.
             </Row>
             <Row n="3" title="Launch, then read verdict-first">
-              ~15–25 minutes; you can watch the analysts debate live. The memo opens on the call, not the throat-
+              Under an hour; you can watch the analysts debate live. The memo opens on the call, not the throat-
               clearing. Download the PDF or tear sheet, or re-run it next quarter to see what changed.
             </Row>
           </div>

@@ -34,11 +34,47 @@
            text-sm text-gray-100 outline-none transition-colors
            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
   }
+  /* Instrumentation micro-labels — mono, tracked, uppercase (the "console" voice). */
   .label {
-    @apply mb-1.5 block text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500;
+    @apply mb-1.5 block font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-gray-500;
   }
   .kicker {
-    @apply text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500;
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-gray-500;
+  }
+
+  /* ── Report-view shared language (ReportViewer + report/* tabs — Agents B/C: adopt these) ── */
+  /* .panel-kicker — mono tracked micro-heading for a graphics-tab panel or sub-block (dark surface). */
+  .panel-kicker {
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-gray-500;
+  }
+  /* .stat-cell/.stat-value/.stat-caption — instrument cells; wrap in `grid gap-px overflow-hidden rounded-lg border border-gray-800 bg-gray-800/60` for hairline seams (matches /app StatStrip). */
+  .stat-cell {
+    @apply bg-gray-900 px-5 py-3.5;
+  }
+  .stat-value {
+    @apply text-xl font-semibold tabular-nums leading-7 text-gray-100;
+  }
+  .stat-caption {
+    @apply mt-1 font-mono text-[9.5px] font-medium uppercase tracking-[0.16em] text-gray-500;
+  }
+  /* .chip / .chip-accent / .chip-warn — mono metadata chips (masthead meta row, panel badges). */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded border border-gray-800 bg-gray-800/60 px-2 py-[3px] font-mono text-[10.5px] leading-4 tabular-nums text-gray-400;
+  }
+  .chip-accent {
+    @apply inline-flex items-center gap-1 rounded border border-brand-500/30 bg-brand-500/10 px-2 py-[3px] font-mono text-[10.5px] leading-4 text-brand-300;
+  }
+  .chip-warn {
+    @apply inline-flex items-center gap-1 rounded border border-amber-900/50 bg-amber-950/30 px-2 py-[3px] font-mono text-[10.5px] leading-4 text-amber-300;
+  }
+  /* .th-label — uppercase tracked header treatment for dark data-table <th> cells. */
+  .th-label {
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-gray-500;
+  }
+  /* .empty-state — shared dashed placeholder for absent artifacts (maps/scores/ledgers). */
+  .empty-state {
+    @apply flex min-h-[140px] items-center justify-center rounded-lg border border-dashed
+           border-gray-800 bg-gray-900/40 px-6 py-8 text-center text-[13px] leading-relaxed text-gray-500;
   }
 }
 
@@ -56,11 +92,11 @@
   @apply text-sm font-semibold text-blue-700 mt-5 mb-2;
 }
 .report-prose p {
-  @apply font-serif text-[15.5px] leading-[1.7] text-slate-800 mb-4;
+  @apply font-serif text-[16px] leading-[1.75] text-slate-800 mb-4;
 }
 .report-prose ul,
 .report-prose ol {
-  @apply my-4 ml-6 space-y-1.5 font-serif text-[15px] text-slate-800;
+  @apply my-4 ml-6 space-y-1.5 font-serif text-[15.5px] text-slate-800;
 }
 .report-prose li {
   @apply leading-relaxed;
@@ -69,11 +105,11 @@
   @apply w-full my-5 text-[13px] font-sans border-collapse;
 }
 .report-prose thead th {
-  @apply text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider
-         px-3 py-2 border-b-2 border-slate-200 bg-slate-50;
+  @apply text-left text-[10.5px] font-semibold text-slate-500 uppercase tracking-[0.1em]
+         px-3 py-2 border-b-2 border-slate-300/70 bg-slate-50;
 }
 .report-prose tbody td {
-  @apply px-3 py-2 border-b border-slate-100 text-slate-700 tabular-nums;
+  @apply px-3 py-2 border-b border-slate-100 text-slate-700 tabular-nums align-top;
 }
 .report-prose tbody tr:hover {
   @apply bg-slate-50;
@@ -143,4 +179,71 @@
 
   @page { size: letter; margin: 0.7in; }
   /* The tear sheet targets a single sheet: pull its page margin in tighter. */
+}
+
+/* ── Finish layer (patterns mined from the Fidea console) ─────────────────── */
+
+/* Entrance motion — a short staggered cascade so surfaces "boot up" rather than
+   snap in. Guarded for reduced-motion users. */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stagger-children > * { animation: fade-up 0.4s ease-out both; }
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+@media (prefers-reduced-motion: reduce) {
+  .stagger-children > * { animation: none; }
+}
+
+/* Atmosphere — a faint azure overhead wash + 3%-white dot grid gives the empty
+   console space depth without competing with content. Screen-only surfaces. */
+.bg-atmosphere {
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(37, 99, 235, 0.05), transparent),
+    radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: auto, 24px 24px;
+}
+
+/* Skeleton shimmer — shape-matched loading placeholders (HistoryList rows, Tracked
+   chain cards, the Home stat strip). Gray-800 base with a faint azure mid-stop so the
+   shimmer reads as console instrumentation, not a generic gray pulse. */
+@keyframes skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skeleton {
+  border-radius: 0.25rem;
+  background-color: #1b2430; /* gray-800 */
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(59, 130, 246, 0.06) 45%,
+    rgba(230, 237, 245, 0.05) 50%,
+    rgba(59, 130, 246, 0.06) 55%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; background-image: none; } /* static block */
+}
+
+/* Toast entrance — a short rise, reusing the fade-up cascade motion. */
+.toast-card { animation: fade-up 0.25s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .toast-card { animation: none; }
+}
+
+/* Thin themed scrollbars — OS scrollbar slabs break the dark console illusion. */
+@media screen {
+  * { scrollbar-width: thin; scrollbar-color: #374151 transparent; }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+  *::-webkit-scrollbar-track { background: transparent; }
 }

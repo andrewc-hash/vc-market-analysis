@@ -58,7 +58,17 @@ def _read(p: Path) -> dict | None:
 def _meta(rec: dict) -> dict:
     # None-safe: missing or explicit-null fields fall back to defaults so a single
     # malformed record can't fail response-model validation for the entire list.
-    return {k: (rec.get(k) if rec.get(k) is not None else _META_DEFAULTS[k]) for k in META_FIELDS}
+    out = {k: (rec.get(k) if rec.get(k) is not None else _META_DEFAULTS[k]) for k in META_FIELDS}
+    # Longitudinal (Tracked view) markers, DERIVED from final_report — the worker stamps
+    # `baseline_id`/`run_delta` inside the report on re-runs. Only the id + a boolean go
+    # into the light list (never the delta contents); legacy records → null/False.
+    fr = rec.get("final_report") or {}
+    if not isinstance(fr, dict):
+        fr = {}
+    baseline = fr.get("baseline_id")
+    out["baseline_report_id"] = str(baseline) if baseline else None
+    out["has_delta"] = bool(fr.get("run_delta"))
+    return out
 
 
 def _write_atomic(p: Path, text: str) -> None:

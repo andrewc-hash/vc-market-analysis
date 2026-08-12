@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prospectus — Intro Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #030712;          /* gray-950 */
+    --panel: #111827;       /* gray-900 */
+    --border: #1f2937;      /* gray-800 */
+    --text: #f3f4f6;        /* gray-100 */
+    --muted: #9ca3af;       /* gray-400 */
+    --dim: #6b7280;         /* gray-500 */
+    --brand: #2563eb;       /* brand-600 azure */
+    --brand-hi: #60a5fa;    /* brand-400 */
+    --brand-soft: rgba(37, 99, 235, 0.12);
+    --good: #34d399;
+    --warn: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden; }
+  .serif { font-family: "Source Serif 4", Georgia, serif; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column; justify-content: center;
+    padding: 6vh 9vw;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .slide.active { display: flex; }
+
+  .kicker {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--brand-hi); margin-bottom: 14px;
+  }
+  h1 { font-size: clamp(40px, 5.2vw, 68px); font-weight: 700; line-height: 1.08; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(32px, 3.8vw, 50px); font-weight: 600; line-height: 1.12; letter-spacing: -0.015em; margin-bottom: 4vh; }
+  .accent { color: var(--brand-hi); }
+  p.lede { font-size: clamp(16px, 1.5vw, 21px); line-height: 1.55; color: var(--muted); max-width: 62ch; }
+
+  .mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 14px; background: var(--brand);
+  }
+  .cards { display: grid; gap: 16px; }
+  .cards.cols-2 { grid-template-columns: 1fr 1fr; }
+  .cards.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cards.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: rgba(17, 24, 39, 0.6); padding: 22px 24px;
+  }
+  .card h3 { font-size: clamp(15px, 1.3vw, 19px); font-weight: 600; margin-bottom: 8px; }
+  .card p { font-size: clamp(13px, 1.1vw, 16px); line-height: 1.55; color: var(--muted); }
+  .card .big { font-size: clamp(26px, 2.6vw, 38px); font-weight: 700; color: var(--text); }
+  .card.hi { border-color: rgba(37, 99, 235, 0.5); background: var(--brand-soft); }
+  .whofor {
+    font-size: clamp(10px, 0.85vw, 12px); font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 10px;
+  }
+
+  table.cmp { width: 100%; border-collapse: collapse; }
+  .cmp th, .cmp td {
+    padding: 16px 20px; text-align: left; vertical-align: top;
+    border-bottom: 1px solid var(--border);
+    font-size: clamp(14px, 1.25vw, 18px); line-height: 1.4;
+  }
+  .cmp th {
+    font-size: clamp(12px, 1vw, 14px); font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--dim); border-bottom: 2px solid var(--border);
+  }
+  .cmp th.pro, .cmp td.pro { background: var(--brand-soft); color: var(--text); font-weight: 500; }
+  .cmp th.pro { color: var(--brand-hi); }
+  .cmp td.rowlabel { color: var(--dim); font-size: clamp(12px, 1vw, 14px); font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase; width: 16%; }
+  .cmp td { color: var(--muted); }
+
+  ul.bullets { list-style: none; display: flex; flex-direction: column; gap: 2.4vh; }
+  ul.bullets li { display: flex; gap: 16px; align-items: baseline;
+    font-size: clamp(16px, 1.5vw, 21px); line-height: 1.5; color: var(--text); }
+  ul.bullets li .n { color: var(--brand-hi); font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  ul.bullets li .sub { color: var(--muted); }
+
+  .footerline { position: absolute; bottom: 4vh; left: 9vw; right: 9vw;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--dim); }
+  .counter { position: fixed; bottom: 4vh; right: 4vw; font-size: 13px; color: var(--dim);
+    font-variant-numeric: tabular-nums; z-index: 10; }
+  .hint { position: fixed; bottom: 4vh; left: 4vw; font-size: 12px; color: #374151; z-index: 10; }
+
+  @media print {
+    html, body { overflow: visible; background: var(--bg); }
+    .slide { display: flex !important; position: relative; page-break-after: always; height: 100vh; }
+    .counter, .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ 1 · TITLE ═══ -->
+<section class="slide active">
+  <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+    <span class="mark" style="width:76px; height:76px; margin-bottom:4vh;">
+      <svg viewBox="0 0 24 24" width="38" height="38" fill="none">
+        <path d="M12 3 L21 12 L12 21 L3 12 Z" fill="#ffffff" fill-opacity="0.95"/>
+        <path d="M12 8 L16 12 L12 16 L8 12 Z" fill="#2563eb"/>
+      </svg>
+    </span>
+    <div class="kicker">AI decision support for venture investors</div>
+    <h1 class="serif">The first-pass prospectus<br/><span class="accent">on any market.</span></h1>
+    <p class="lede" style="margin-top:3vh;">
+      A SaaS platform for VCs: one prompt or pitch deck in —
+      an institutional-grade investment memo out.
+    </p>
+    <p style="margin-top:2.5vh; font-size:clamp(13px,1.1vw,15px); color:var(--dim);">
+      Already used on live deal flow by an early-stage MedTech fund.
+    </p>
+  </div>
+  <div class="footerline">
+    <span>Andrew Chen</span>
+    <span>vc-market-analysis.vercel.app</span>
+  </div>
+</section>
+
+<!-- ═══ 2 · MARKET & WHY NOW ═══ -->
+<section class="slide">
+  <div class="kicker">The market — and why now</div>
+  <h2 class="serif">Screening is becoming the bottleneck.</h2>
+  <div class="cards cols-3" style="margin-bottom:3vh;">
+    <div class="card">
+      <p><span class="big">$30T</span></p>
+      <p style="margin-top:6px;">alternative assets projected by 2030 <span style="color:var(--dim);">(Preqin)</span></p>
+    </div>
+    <div class="card">
+      <p><span class="big">$18B</span></p>
+      <p style="margin-top:6px;">private-markets data &amp; analytics market by 2030 <span style="color:var(--dim);">(BlackRock)</span></p>
+    </div>
+    <div class="card hi">
+      <p><span class="big">$3.2B</span></p>
+      <p style="margin-top:6px;">what BlackRock paid for Preqin — for <em>data alone</em>, no judgment</p>
+    </div>
+  </div>
+  <p class="lede">
+    AI has collapsed the cost of building startups — deal flow is exploding while partner
+    attention stays fixed. The incumbents sell data.
+    <strong style="color:var(--text);">The empty slot is auditable judgment</strong> — institutional
+    first passes at software speed, with the work shown. That's the needle-finder for the coming haystack.
+  </p>
+</section>
+
+<!-- ═══ 3 · VS TRADITIONAL ═══ -->
+<section class="slide">
+  <div class="kicker">The value</div>
+  <h2 class="serif">A week of work, in under an hour.</h2>
+  <table class="cmp">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Traditional first pass</th>
+        <th class="pro">Prospectus</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="rowlabel">Time</td>
+        <td>1–2 weeks of an associate</td>
+        <td class="pro">&lt; 1 hour</td>
+      </tr>
+      <tr>
+        <td class="rowlabel">Cost</td>
+        <td>$3–5K of salaried time per memo</td>
+        <td class="pro">A per-report fee</td>
+      </tr>
+      <tr>
+        <td class="rowlabel">Consistency</td>
+        <td>Varies by analyst, by week</td>
+        <td class="pro">Same rubric, every run</td>
+      </tr>
+      <tr>
+        <td class="rowlabel">Audit trail</td>
+        <td>Notes in someone's head</td>
+        <td class="pro">Built in: the analysts' recorded debate, every search, the worked math</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 4 · WHAT IT IS ═══ -->
+<section class="slide">
+  <div class="kicker">The platform</div>
+  <h2 class="serif">One prompt in. An IC-ready memo out.</h2>
+  <div class="cards cols-3">
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">Input</h3>
+      <p>A market, a named startup — or just a pitch deck.</p>
+    </div>
+    <div class="card hi">
+      <h3 style="color:var(--brand-hi);">&lt; 1 hour</h3>
+      <p>Live research. An adversarial AI debate. Every number computed in code.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">Output</h3>
+      <p>A 13-section, verdict-first memo with a scored market map.</p>
+    </div>
+  </div>
+  <p style="margin-top:3vh; font-size:clamp(13px,1.1vw,15px); color:var(--dim); text-align:center;">
+    VC mode ranks a target inside its field &nbsp;·&nbsp; Founder mode delivers a build / pass verdict on one company
+  </p>
+</section>
+
+<!-- ═══ 4 · CASE STUDY ═══ -->
+<section class="slide">
+  <div class="kicker">Case study — SaniMed Science Group</div>
+  <h2 class="serif">Used on live deal flow.</h2>
+  <div class="cards cols-2">
+    <div class="card">
+      <h3>Two real deals</h3>
+      <p>An early-stage MedTech fund evaluated <strong style="color:var(--text);">two startups under
+        active investment consideration</strong> with Prospectus — no founder access, no data room,
+        <strong style="color:var(--text);">just a pitch deck</strong>.</p>
+    </div>
+    <div class="card hi">
+      <h3>…and asked for more</h3>
+      <p>Founder &amp; CEO <strong style="color:var(--text);">Jim Wu, MD MBA</strong> came back proposing
+        a <strong style="color:var(--text);">biomed-specialized edition</strong>. Inbound.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 5 · HOW IT WORKS ═══ -->
+<section class="slide">
+  <div class="kicker">Why the numbers hold up</div>
+  <h2 class="serif">The analysts argue before you read a word.</h2>
+  <div class="cards cols-4" style="margin-bottom:16px;">
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">Researchers</h3>
+      <p>Live, dated evidence — every source linked.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">Analysts</h3>
+      <p>Independent reads, on different AI models — no shared blind spots.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">Judge</h3>
+      <p>Finds every disagreement, forces re-argument until settled.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">Compiler</h3>
+      <p>Consensus in, memo + market map out.</p>
+    </div>
+  </div>
+  <div class="cards cols-3">
+    <div class="card hi">
+      <h3>Software does the math — not the AI</h3>
+      <p>Every score, ranking, and return figure is computed in code. The AI never invents a number.</p>
+    </div>
+    <div class="card">
+      <h3>Every report shows its work</h3>
+      <p>A built-in audit trail: the debate round by round, every search run, the arithmetic behind each score.</p>
+    </div>
+    <div class="card">
+      <h3>It tells you what it doesn't know</h3>
+      <p>"Not Disclosed" stays Not Disclosed. Thin data gets flagged, approximate scores.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 6 · THE DELIVERABLE ═══ -->
+<section class="slide">
+  <div class="kicker">The deliverable</div>
+  <h2 class="serif">Built to be audited, not just read.</h2>
+  <div class="cards cols-3">
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">The memo</h3>
+      <p>13 sections, verdict first — INVEST / WATCH / PASS at a stated price, with dated conditions.</p>
+    </div>
+    <div class="card hi">
+      <h3 style="color:var(--brand-hi);">The instrument panel</h3>
+      <p>Market map · weighted scorecard · letter grades · financial ledger · fund fit:
+        <strong style="color:var(--text);">the exit required to return your fund</strong>.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--brand-hi);">It keeps score on itself</h3>
+      <p>Re-run any report later: it diffs the field and grades its own past predictions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 8 · DEPTH IS A DIAL ═══ -->
+<section class="slide">
+  <div class="kicker">Honest limits — and the headroom</div>
+  <h2 class="serif">Analysis depth is a dial.</h2>
+  <div class="cards cols-2" style="margin-bottom:16px;">
+    <div class="card">
+      <h3>Today</h3>
+      <p><span class="big">Everything you just saw</span></p>
+      <p style="margin-top:10px;">The full pipeline, end to end — built by one person.</p>
+    </div>
+    <div class="card hi">
+      <h3>Funded</h3>
+      <p><span class="big">The dial turns up</span></p>
+      <p style="margin-top:10px;">Run depth sets quality. Funding buys
+        <strong style="color:var(--text);">more specialist agents, deeper research, longer
+        debates</strong> — and the testing to prove each notch.</p>
+    </div>
+  </div>
+  <div class="cards cols-2">
+    <div class="card">
+      <h3 style="color:var(--warn);">Vertical depth</h3>
+      <p>Benchmarks are software-calibrated — specialized sectors get purpose-built modules.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--warn);">Data &amp; security</h3>
+      <p>Pilots are <strong style="color:var(--text);">public-data by design</strong>. Documents:
+        single-tenant, <strong style="color:var(--text);">never used to train models</strong> (contractual).
+        SOC 2 + zero-retention on the roadmap.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 9 · THREE WAYS IN ═══ -->
+<section class="slide">
+  <div class="kicker">Where you come in</div>
+  <h2 class="serif">Three ways to work together.</h2>
+  <div class="cards cols-3">
+    <div class="card">
+      <div class="whofor">For funds that want reports today</div>
+      <h3 style="color:var(--brand-hi);">Use it</h3>
+      <p><strong style="color:var(--text);">Pilot now.</strong> Send a deal or a sector — the memo
+        comes back same-day. Self-serve accounts are next.</p>
+    </div>
+    <div class="card">
+      <div class="whofor">For funds with deep domain expertise</div>
+      <h3 style="color:var(--brand-hi);">Shape it</h3>
+      <p><strong style="color:var(--text);">Co-develop your field's edition</strong> — biomed, agentic AI,
+        cybersecurity. Your expertise, same engine.</p>
+    </div>
+    <div class="card hi">
+      <div class="whofor">For backers of the bigger roadmap</div>
+      <h3 style="color:var(--brand-hi);">Back it</h3>
+      <p><strong style="color:var(--text);">Fund the next specialist agents</strong> — IP &amp; patent,
+        primary-source, founder-interview, a stealth-searcher for pre-press deal signal.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 10 · LIVE DEMO ═══ -->
+<section class="slide">
+  <div class="kicker">Now, live</div>
+  <h2 class="serif">Let's run it on a company <span class="accent">you</span> care about.</h2>
+  <ul class="bullets">
+    <li><span class="n">01</span><span>Kick off a live analysis — your pick.&nbsp;<span class="sub">It runs while we talk.</span></span></li>
+    <li><span class="n">02</span><span>Walk through a finished memo — including the one it wrote about its own maker.&nbsp;<span class="sub">It ranked us last. That's the point.</span></span></li>
+    <li><span class="n">03</span><span>Your report lands in your inbox within the hour.</span></li>
+  </ul>
+  <div class="footerline">
+    <span style="display:flex; align-items:center; gap:10px;">
+      <span class="mark" style="width:18px; height:18px; border-radius:5px;">
+        <svg viewBox="0 0 24 24" width="9" height="9" fill="none">
+          <path d="M12 3 L21 12 L12 21 L3 12 Z" fill="#ffffff" fill-opacity="0.95"/>
+          <path d="M12 8 L16 12 L12 16 L8 12 Z" fill="#2563eb"/>
+        </svg>
+      </span>
+      Prospectus
+    </span>
+    <span>explore anytime: vc-market-analysis.vercel.app/demo</span>
+  </div>
+</section>
+
+<div class="counter"><span id="cur">1</span> / <span id="total">10</span></div>
+<div class="hint">← → to navigate</div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  document.getElementById("total").textContent = slides.length;
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    document.getElementById("cur").textContent = i + 1;
+  }
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", " ", "PageDown", "Enter"].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    if (e.key === "Home") show(0);
+    if (e.key === "End") show(slides.length - 1);
+  });
+  addEventListener("click", (e) => { if (!e.target.closest("a")) show(i + 1); });
+</script>
+</body>
+</html>

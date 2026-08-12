@@ -38,6 +38,7 @@ from app.graph.prompts import (
     RESOLVE_SCORES_SYSTEM,
     SCOPE_INFERENCE_SYSTEM,
     STRUCTURED_ARTIFACTS_SYSTEM,
+    TOUR_SUMMARY_SYSTEM,
     get_judge_system_prompt,
 )
 from app.graph.state import ResearchState
@@ -1363,10 +1364,15 @@ def _extract_retry_seconds(err_str: str) -> int | None:
 
 
 # LangGraph's default recursion_limit is 25 supersteps ≈ 12 sequential tool rounds — far
-# below the ≥20-call research protocol (a compliant researcher needs ~24-33 calls). 100
+# below the ≥30-call research protocol (a compliant researcher needs ~34-45 calls). 100
 # covers ~49 sequential rounds with headroom; without it a compliant run dies mid-research
 # with GraphRecursionError (which is NOT retryable below).
 AGENT_RECURSION_LIMIT = 100
+
+# Hard floor for the researcher's search protocol, enforced IN CODE by a one-shot
+# corrective re-run in researcher_node (the prompt mandates the same number, but tool
+# use is the model's per-turn choice and prompts alone were violated live 2026-07-24).
+PROTOCOL_MIN_TOOL_CALLS = 30
 
 
 def _run_agent_with_retry(agent, messages, max_retries=8):
@@ -1442,7 +1448,7 @@ def _build_researcher_user_message(state: ResearchState) -> str:
         f"backgrounds and cap-table/ownership signals, and each startup's last "
         f"round / valuation terms.\n\n"
         f"Perform exhaustive research using your search tools. You MUST make "
-        f"at least 20 tool calls (including one search_latest_news call per "
+        f"at least 30 tool calls (including one search_latest_news call per "
         f"deep-dived startup — the freshness pass). Identify and profile AT LEAST "
         f"6-8 startups in this sector. Output ALL raw facts, data, source URLs, "
         f"and each fact's as-of date. Do NOT form opinions or assign scores."
@@ -2251,24 +2257,60 @@ def researcher_node(state: ResearchState) -> dict[str, Any]:
     )
 
     user_message = _build_researcher_user_message(state)
-    result = _run_agent_with_retry(agent, {"messages": [("user", user_message)]})
 
-    messages = result["messages"]
-    research_output = _normalize_content(messages[-1].content)
+    def _attempt(msg: str):
+        # One researcher pass + the transcript audit (protocol compliance, real source URLs).
+        result = _run_agent_with_retry(agent, {"messages": [("user", msg)]})
+        messages = result["messages"]
+        output = _normalize_content(messages[-1].content)
+        manifest = _research_manifest(messages)
+        manifest["urls_in_brief"] = output.count("http")
+        source_index = _harvest_source_index(messages)
+        if source_index:
+            output += source_index
+        return output, manifest, source_index
 
-    # Audit the (otherwise discarded) transcript: protocol compliance + real source URLs.
-    manifest = _research_manifest(messages)
-    urls_in_brief = research_output.count("http")
-    manifest["urls_in_brief"] = urls_in_brief
-    source_index = _harvest_source_index(messages)
-    if source_index:
-        research_output += source_index
+    research_output, manifest, source_index = _attempt(user_message)
+
+    # PROTOCOL GUARD — enforced in code, not just the prompt. Tool use is ultimately the
+    # model's per-turn choice: observed live 2026-07-24, a run wrote its brief in one
+    # 80-second turn with ZERO searches. One corrective re-run (cap: 1), keep the better
+    # attempt by call count, and disclose the retry in the manifest.
+    guard_logs: list[str] = []
+    protocol_retries = 0
+    if manifest["total"] < PROTOCOL_MIN_TOOL_CALLS:
+        protocol_retries = 1
+        guard_logs.append(
+            f"[Researcher] PROTOCOL GUARD: only {manifest['total']} tool call(s) "
+            f"(<{PROTOCOL_MIN_TOOL_CALLS}) — rejecting the attempt and re-running the researcher (retry 1/1)"
+        )
+        logger.warning(
+            "Researcher protocol guard tripped: %s tool calls < %s — retrying once",
+            manifest["total"], PROTOCOL_MIN_TOOL_CALLS,
+        )
+        retry_message = user_message + (
+            f"\n\nPROTOCOL VIOLATION NOTICE: your previous attempt made only {manifest['total']} "
+            f"search tool calls against the mandatory minimum of {PROTOCOL_MIN_TOOL_CALLS}. That attempt was "
+            "REJECTED — a brief written without live searches is invalid (figures from memory are banned). "
+            "Execute the FULL research protocol now: make every required search tool call, phase by phase, "
+            "BEFORE writing the brief."
+        )
+        retry_output, retry_manifest, retry_index = _attempt(retry_message)
+        if retry_manifest["total"] > manifest["total"]:
+            research_output, manifest, source_index = retry_output, retry_manifest, retry_index
+        else:
+            guard_logs.append(
+                f"[Researcher] PROTOCOL GUARD: retry made {retry_manifest['total']} call(s) — "
+                "keeping the original attempt"
+            )
+    manifest["protocol_retries"] = protocol_retries
+    urls_in_brief = manifest["urls_in_brief"]
 
     latest_news = manifest["by_tool"].get("search_latest_news", 0)
     grounded = manifest["by_tool"].get("search_google_live", 0)
     shortfalls = []
-    if manifest["total"] < 20:
-        shortfalls.append(f"only {manifest['total']} calls (<20)")
+    if manifest["total"] < PROTOCOL_MIN_TOOL_CALLS:
+        shortfalls.append(f"only {manifest['total']} calls (<{PROTOCOL_MIN_TOOL_CALLS})")
     if latest_news == 0:
         shortfalls.append("no latest-news freshness pass")
     if grounded == 0:
@@ -2286,7 +2328,7 @@ def researcher_node(state: ResearchState) -> dict[str, Any]:
     return {
         "research_data": research_output,
         "research_manifest": manifest,
-        "agent_logs": [log],
+        "agent_logs": guard_logs + [log],
     }
 
 
@@ -2366,6 +2408,59 @@ def _format_disagreements(disagreements: list) -> str:
     return "\n".join(lines)
 
 
+# Debate-log sanitization bounds (glass-box artifact — UI-facing, so hard caps).
+_DEBATE_FIELD_MAX_CHARS = 600
+_DEBATE_MAX_DISAGREEMENTS = 10
+_DEBATE_FIELDS = ("point", "analyst_a", "analyst_b", "reconsider")
+
+
+def _sanitize_disagreements(raw) -> list:
+    """Coerce a judge verdict's disagreement list into the debate-log shape: dict
+    entries only (malformed dropped), the four fields coerced to strings and truncated
+    to ≤600 chars each, capped at ≤10 per round. Always returns a JSON-safe list."""
+    out: list[dict] = []
+    for d in raw if isinstance(raw, list) else []:
+        if not isinstance(d, dict):
+            continue  # malformed entry — dropped
+        entry = {}
+        for k in _DEBATE_FIELDS:
+            v = d.get(k)
+            s = "" if v is None else str(v).strip()
+            entry[k] = s[:_DEBATE_FIELD_MAX_CHARS]
+        if not any(entry.values()):
+            continue  # carries no content — dropped
+        out.append(entry)
+        if len(out) >= _DEBATE_MAX_DISAGREEMENTS:
+            break
+    return out
+
+
+def _validate_debate_log(raw) -> list:
+    """Defensive compile-time re-validation of the debate log (same philosophy as
+    _validate_market_map): returns a clean list of round entries, or [] when the
+    state carries nothing usable. JSON-safe plain types only — the judge already
+    writes sanitized entries, so this only guards against corrupted/legacy state."""
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for r in raw:
+        if not isinstance(r, dict):
+            continue
+        try:
+            rnd = int(r.get("round"))
+        except (TypeError, ValueError):
+            continue
+        if rnd < 1:
+            continue
+        out.append({
+            "round": rnd,
+            "converged": bool(r.get("converged")),
+            "forced": bool(r.get("forced")),
+            "disagreements": _sanitize_disagreements(r.get("disagreements")),
+        })
+    return out
+
+
 def judge_node(state: ResearchState) -> dict[str, Any]:
     """Disagreement arbiter: PINPOINT where the two analysts diverge and route those
     points back for reconsideration. It does NOT score and does NOT build final_report —
@@ -2408,12 +2503,27 @@ def judge_node(state: ResearchState) -> dict[str, Any]:
     disagreements = verdict.get("disagreements")
     if not isinstance(disagreements, list):
         disagreements = []
-    converged = bool(verdict.get("converged")) or is_final
+    raw_converged = bool(verdict.get("converged"))
+    converged = raw_converged or is_final
+    # Glass-box debate log (pure observation — routing/critique semantics untouched):
+    # record the judge's RAW verdict for this round, flag when the round cap FORCED
+    # agreement, and keep the sanitized disagreements. The no-parse fallback
+    # (verdict == {}) still appends an entry — converged=False, disagreements=[] —
+    # so the log's round count stays truthful. One append per round; the judge is
+    # the state key's only writer (last-write-wins, no reducer).
+    debate_log = list(state.get("debate_log") or [])
+    debate_log.append({
+        "round": iteration,
+        "converged": raw_converged,
+        "forced": is_final and not raw_converged,
+        "disagreements": _sanitize_disagreements(disagreements),
+    })
     log = "converged" if converged else f"{len(disagreements)} disagreement(s) — looping"
     return {
         "iterations": iteration,
         "judge_agreed": converged,
         "judge_critique": "" if converged else _format_disagreements(disagreements),
+        "debate_log": debate_log,
         "agent_logs": [f"[Judge · Round {iteration}] {log}"],
     }
 
@@ -2456,6 +2566,144 @@ def _report_sections(md: str) -> dict[int, str]:
         except (ValueError, IndexError):
             continue
     return out
+
+
+# Guided-tour beats: (id, title, section number, visual) — code-defined order. A beat is
+# skipped when its section is absent; "beliefs" additionally requires the §12 subsection.
+_TOUR_BEATS = (
+    ("verdict", "The Verdict", 0.0, "none"),
+    ("repositioning", "The Repositioning", 0.5, "none"),  # founder-mode §0.5 only
+    ("why_now", "Why Now", 2.0, "none"),
+    ("field", "The Field", 3.0, "map"),
+    ("scores", "The Scorecard", 7.0, "scorecard"),
+    ("money", "The Money", 6.0, "ledger"),
+    ("risks", "The Risks", 11.0, "none"),
+    ("returns", "Return Math", 12.0, "fundfit"),
+    ("beliefs", "What We Must Believe", 12.0, "none"),
+)
+
+
+def _split_report_sections(md: str) -> dict[float, str]:
+    """{section number (0, 0.5, 1..13): that section's text, incl. its header line}.
+    Splits on canonical `## N. Name` headers; tolerates `## 0.` vs `## 0 ` and keys the
+    founder-only `## 0.5` heading as 0.5 (float keys throughout)."""
+    md = md or ""
+    out: dict[float, str] = {}
+    matches = list(re.finditer(r"(?m)^##\s+(\d{1,2}(?:\.5)?)\.?(?=\s|$)", md))
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(md)
+        try:
+            out[float(m.group(1))] = md[m.start():end]
+        except ValueError:
+            continue
+    return out
+
+
+def _tour_fallback_summary(text: str) -> str:
+    """First 1-2 sentences of a section's PROSE — headers, table lines, bullets and bold
+    markers stripped, capped ~300 chars. Empty only when the section has no prose."""
+    lines: list[str] = []
+    for ln in (text or "").splitlines():
+        s = ln.strip()
+        if (not s or s.startswith(("#", "|", "- ", "* ", "+ ", ">"))
+                or re.match(r"^\d+\.\s", s) or not re.search(r"[A-Za-z]", s)):
+            continue
+        lines.append(s)
+    prose = re.sub(r"\*\*|__", "", " ".join(lines)).strip()
+    if not prose:
+        return ""
+    sentences = re.split(r"(?<=[.!?])\s+", prose)
+    out = " ".join(sentences[:2]).strip()
+    if len(out) > 300:
+        out = out[:297].rstrip() + "…"
+    return out
+
+
+def _validate_tour_summary(summary, section_text) -> bool:
+    """Honesty guardrail for LLM tour summaries: non-empty, ≤420 chars, and EVERY numeric
+    token in the summary must appear (comma-stripped) in the section text — no number may
+    be born in a summary."""
+    s = str(summary or "").strip()
+    if not s or len(s) > 420:
+        return False
+    hay = str(section_text or "").replace(",", "")
+    for tok in re.findall(r"\d[\d,\.]*", s):
+        if tok.replace(",", "").rstrip(".") not in hay:
+            return False
+    return True
+
+
+def _beliefs_subsection(sec12: str) -> str:
+    """The 'WHAT WE MUST BELIEVE' slice of §12 (case-insensitive), from the phrase to the
+    next markdown heading. Empty string when §12 carries no such subsection."""
+    m = re.search(r"(?i)what\s+we\s+must\s+believe", sec12 or "")
+    if not m:
+        return ""
+    rest = sec12[m.end():]
+    nxt = re.search(r"(?m)^#{1,6}\s", rest)
+    return (rest[:nxt.start()] if nxt else rest).strip()
+
+
+def _generate_tour(merged_report: str, analysis_mode: str = "vc") -> dict:
+    """Guided-walkthrough artifact for the frontend step-through presentation.
+
+    Beats are code-defined over the merged report's sections; ONE judge-model call writes
+    the step summaries (strict JSON {beat_id: summary}), each gated by
+    _validate_tour_summary — a summary that fails the number guardrail degrades to the
+    in-code prose fallback. generated=True iff the LLM call returned parseable JSON; on
+    any failure the whole tour is built from fallbacks (never raises).
+    """
+    sections = _split_report_sections(merged_report or "")
+    beats: list[dict] = []
+    for beat_id, title, sec_no, visual in _TOUR_BEATS:
+        text = sections.get(sec_no)
+        if text is None:
+            continue
+        if beat_id == "beliefs":
+            text = _beliefs_subsection(text)
+            if not text:
+                continue
+        beats.append({"id": beat_id, "title": title, "section": float(sec_no),
+                      "visual": visual, "text": text})
+    if not beats:
+        return {"steps": [], "generated": False}
+
+    summaries: dict = {}
+    generated = False
+    try:
+        settings = get_settings()
+        blocks = "\n\n---\n\n".join(
+            f"### BEAT `{b['id']}` — {b['title']} (from section {b['section']:g})\n\n"
+            f"{b['text'][:5000]}"
+            for b in beats
+        )
+        user_message = (
+            f"Analysis mode: {analysis_mode or 'vc'}\n\n{blocks}\n\n---\n\n"
+            f"Write the tour summary for each of these beat ids: "
+            f"{', '.join(b['id'] for b in beats)}. JSON ONLY."
+        )
+        llm = _make_llm(settings.judge_model, temperature=0.1, max_tokens=2048)
+        result = _invoke_llm_with_retry(llm, [
+            ("system", TOUR_SUMMARY_SYSTEM),
+            ("user", user_message),
+        ])
+        raw = _last_balanced_json(_normalize_content(result.content))
+        if isinstance(raw, dict):
+            summaries = raw
+            generated = True
+    except Exception as e:  # noqa: BLE001 - the tour is best-effort, never fails a run
+        logger.error("Tour summarizer failed: %s", e)
+
+    steps: list[dict] = []
+    for b in beats:
+        cand = summaries.get(b["id"])
+        if isinstance(cand, str) and _validate_tour_summary(cand, b["text"]):
+            summary, source = cand.strip(), "llm"
+        else:
+            summary, source = _tour_fallback_summary(b["text"]), "fallback"
+        steps.append({"id": b["id"], "title": b["title"], "summary": summary,
+                      "section": b["section"], "visual": b["visual"], "source": source})
+    return {"steps": steps, "generated": generated}
 
 
 def _extract_resolved_scores(analyst_a: str, analyst_b: str, settings, focal: str = ""):
@@ -3322,6 +3570,15 @@ def compile_report(state: ResearchState) -> dict[str, Any]:
     # Deterministic telemetry + liability boundary on BOTH paths — never left to LLM compliance.
     merged_report += methodology_md + REPORT_DISCLAIMER
 
+    # Guided tour for the frontend step-through — best-effort on BOTH compile paths
+    # (beats come from whatever numbered sections the final merged_report carries);
+    # None only on catastrophic failure, never an exception out of compile_report.
+    try:
+        tour = _generate_tour(merged_report, mode)
+    except Exception as e:  # noqa: BLE001
+        logger.error("Tour generation failed: %s", e)
+        tour = None
+
     # Deterministic field stats for the UI hero cards (ledger-derived, no LLM).
     field_stats = None
     if isinstance(financial_ledger, dict):
@@ -3404,6 +3661,14 @@ def compile_report(state: ResearchState) -> dict[str, Any]:
         # Per-startup score confidence from ledger disclosure (in code) — the UI bands
         # or de-precisions scores for low-disclosure startups instead of showing 71.9.
         "score_confidence": _ledger_confidence(financial_ledger, canonical=ranking),
+        # Guided-walkthrough steps (beats coded, summaries LLM-written but number-gated
+        # in code, fallbacks from the report's own prose). None on catastrophic failure.
+        "tour": tour,
+        # Glass-box debate log: the judge's per-round raw verdicts (converged/forced +
+        # sanitized disagreements), re-validated in code here — [] when absent, never
+        # a crash. Built on BOTH compile paths (this dict is assembled after the
+        # try/except, like methodology + the disclaimer).
+        "debate_log": _validate_debate_log(state.get("debate_log")),
         "iterations_to_consensus": state.get("iterations", 0),
         "thesis_bias": state.get("thesis_bias", "Base"),
         "status": "completed",

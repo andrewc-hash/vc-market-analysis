@@ -30,20 +30,18 @@ export default function DimensionWeightsPanel({ weights, onChange }: Props) {
       <div className="space-y-4">
         {dimensions.map(({ key, label }) => (
           <div key={key}>
-            <label className="mb-1.5 block text-sm text-gray-300">{label}</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={1}
-                max={100}
-                value={weights[key]}
-                onChange={(e) => onChange({ ...weights, [key]: Number(e.target.value) })}
-                className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-gray-700 accent-brand-500"
-              />
-              <span className="w-14 shrink-0 rounded-md border border-gray-700 bg-gray-800 py-1 text-center text-xs tabular-nums text-gray-200">
-                {weights[key]}%
-              </span>
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <label className="text-sm text-gray-300">{label}</label>
+              <span className="text-xs font-medium tabular-nums text-brand-300">{weights[key]}%</span>
             </div>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              value={weights[key]}
+              onChange={(e) => onChange({ ...weights, [key]: Number(e.target.value) })}
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-700 accent-brand-500"
+            />
           </div>
         ))}
       </div>

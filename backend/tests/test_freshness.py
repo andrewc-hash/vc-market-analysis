@@ -216,11 +216,13 @@ check("call args are truncated", all(len(v) <= 200 for c in mf["calls"] for v in
 check("Source Index appended with real transcript URLs",
       "## Source Index" in out["research_data"] and "https://globes.il/b" in out["research_data"])
 check("Source Index dedupes URLs", out["research_data"].count("https://tc.com/a") == 1)
-check("audit log line with counts + shortfall flag",
-      "4 searches (1 latest-news, 1 grounded, 1 failed)" in out["agent_logs"][0]
-      and "PROTOCOL SHORTFALL" in out["agent_logs"][0]
-      and "only 4 calls" in out["agent_logs"][0]
-      and "no source URLs" in out["agent_logs"][0])
+check("audit log line with counts + shortfall flag (last log entry — guard lines precede it)",
+      "4 searches (1 latest-news, 1 grounded, 1 failed)" in out["agent_logs"][-1]
+      and "PROTOCOL SHORTFALL" in out["agent_logs"][-1]
+      and "only 4 calls" in out["agent_logs"][-1]
+      and "no source URLs" in out["agent_logs"][-1])
+check("protocol guard tripped on the 4-call transcript (retry disclosed in manifest)",
+      mf["protocol_retries"] == 1 and any("PROTOCOL GUARD" in l for l in out["agent_logs"]))
 
 
 print("=" * 72); print("_data_freshness: in-code report freshness audit"); print("=" * 72)
@@ -244,7 +246,7 @@ r_msg = N._build_researcher_user_message({"market_prompt": "ambient scribes"})
 check("researcher message is date-grounded", "Today's date: 20" in r_msg)
 check("researcher told: search results only, never memory", "NOT from memory" in r_msg)
 check("researcher told: 20+ calls incl. the freshness pass",
-      "at least 20 tool calls" in r_msg and "search_latest_news" in r_msg)
+      "at least 30 tool calls" in r_msg and "search_latest_news" in r_msg)
 check("as-of dates are conditional — '(date not stated)' fallback, never invented",
       "(date not stated)" in r_msg and "NEVER invent a date" in r_msg)
 
@@ -255,6 +257,8 @@ check("analyst told: newest figure wins on conflict", "most RECENT" in a_msg)
 
 captured = {}
 def _fake_invoke(llm, messages, max_retries=8):
+    if messages[0][1] is N.TOUR_SUMMARY_SYSTEM:  # the tour's summarizer call, not the compiler's
+        return types.SimpleNamespace(content="{}")
     captured["user_msg"] = messages[1][1]
     return types.SimpleNamespace(content="## 0. Investment Take\nstub")
 N._make_llm = lambda *a, **k: None
@@ -294,7 +298,7 @@ check("judge message is date-grounded (recency arbitration, no memory figures)",
 
 
 print("=" * 72); print("Prompts: freshness protocol wired in"); print("=" * 72)
-check("choreography demands >=20 calls", "AT LEAST 20 search tool calls" in TOOL_CHOREOGRAPHY_INSTRUCTIONS)
+check("choreography demands >=20 calls", "AT LEAST 30 search tool calls" in TOOL_CHOREOGRAPHY_INSTRUCTIONS)
 check("choreography mandates the per-startup freshness pass",
       "FRESHNESS PASS" in TOOL_CHOREOGRAPHY_INSTRUCTIONS
       and "search_latest_news" in TOOL_CHOREOGRAPHY_INSTRUCTIONS)

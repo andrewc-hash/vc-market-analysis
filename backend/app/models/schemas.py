@@ -168,6 +168,9 @@ class ReportSummary(BaseModel):
     thesis_bias: str = ""
     label: str = ""
     starred: bool = False
+    # Longitudinal markers (Tracked view): set only on re-run records; legacy → null/false.
+    baseline_report_id: Optional[str] = None
+    has_delta: bool = False
 
 
 class ReportMetaUpdate(BaseModel):

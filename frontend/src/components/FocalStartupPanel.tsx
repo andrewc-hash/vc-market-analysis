@@ -18,6 +18,9 @@ interface Props {
   // Public-data deployments disable uploads (confidential material must not reach
   // third-party LLM APIs without data-handling agreements). null = config pending.
   uploadsEnabled?: boolean | null;
+  // Mode-view usage: the panel is permanently ON with analysisMode fixed by the parent —
+  // hide the on/off switch and the internal VC/Founder toggle, adapt the copy.
+  pinned?: boolean;
 }
 
 const ACCEPT = ".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.csv,.vtt,.srt,.mp3,.m4a,.wav,.webm";
@@ -57,7 +60,13 @@ function Switch({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
   );
 }
 
-export default function FocalStartupPanel({ value, onChange, disabled, uploadsEnabled = true }: Props) {
+export default function FocalStartupPanel({
+  value,
+  onChange,
+  disabled,
+  uploadsEnabled = true,
+  pinned = false,
+}: Props) {
   const uploadsPending = uploadsEnabled === null;
   const [files, setFiles] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -65,7 +74,23 @@ export default function FocalStartupPanel({ value, onChange, disabled, uploadsEn
   const inputRef = useRef<HTMLInputElement>(null);
 
   const set = (patch: Partial<FocalState>) => onChange({ ...value, ...patch });
-  const on = value.enabled;
+  const on = pinned || value.enabled;
+  const founder = value.analysisMode === "founder";
+
+  const header = pinned
+    ? founder
+      ? {
+          title: "Your Startup",
+          desc: "Name your company and attach materials — the whole report centers on it.",
+        }
+      : {
+          title: "Target Startup",
+          desc: "The deal you're evaluating — force-included and ranked against its real competitive field.",
+        }
+    : {
+        title: "Target Startup Details",
+        desc: "Analyze a specific company — a target you're evaluating, or your own startup.",
+      };
 
   const handleFiles = async (list: FileList | null) => {
     if (!list || list.length === 0) return;
@@ -90,15 +115,13 @@ export default function FocalStartupPanel({ value, onChange, disabled, uploadsEn
 
   return (
     <div>
-      {/* Header + on/off */}
+      {/* Header (+ on/off switch only when not pinned to a mode view) */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-100">Target Startup Details</h2>
-          <p className="mt-0.5 text-xs text-gray-500">
-            Analyze a specific company — a target you&rsquo;re evaluating, or your own startup.
-          </p>
+          <h2 className="text-lg font-semibold text-gray-100">{header.title}</h2>
+          <p className="mt-0.5 text-xs text-gray-500">{header.desc}</p>
         </div>
-        <Switch on={on} onToggle={() => set({ enabled: !on })} disabled={disabled} />
+        {!pinned && <Switch on={on} onToggle={() => set({ enabled: !on })} disabled={disabled} />}
       </div>
 
       {!on ? (
@@ -107,35 +130,46 @@ export default function FocalStartupPanel({ value, onChange, disabled, uploadsEn
         </p>
       ) : (
         <div className="mt-5 space-y-4">
-          {/* Mode toggle */}
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {MODES.map((m) => {
-              const active = value.analysisMode === m.key;
-              return (
-                <button
-                  key={m.key}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => set({ analysisMode: m.key })}
-                  className={`rounded-md border p-3 text-left transition ${
-                    active ? "border-brand-400 bg-brand-500/10" : "border-gray-800 hover:border-gray-700"
-                  }`}
-                >
-                  <div className={`text-sm font-medium ${active ? "text-brand-200" : "text-gray-200"}`}>{m.title}</div>
-                  <div className="mt-0.5 text-xs text-gray-500">{m.blurb}</div>
-                </button>
-              );
-            })}
-          </div>
+          {/* Mode toggle (pinned mode views fix the mode — no toggle) */}
+          {!pinned && (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {MODES.map((m) => {
+                const active = value.analysisMode === m.key;
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => set({ analysisMode: m.key })}
+                    className={`rounded-md border p-3 text-left transition ${
+                      active ? "border-brand-400 bg-brand-500/10" : "border-gray-800 hover:border-gray-700"
+                    }`}
+                  >
+                    <div className={`text-sm font-medium ${active ? "text-brand-200" : "text-gray-200"}`}>{m.title}</div>
+                    <div className="mt-0.5 text-xs text-gray-500">{m.blurb}</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {pinned && (
+            <p className="rounded-md border border-gray-800 bg-gray-900/40 px-3 py-2 text-xs text-gray-500">
+              {MODES.find((m) => m.key === value.analysisMode)?.blurb}
+            </p>
+          )}
 
           {/* Startup name */}
           <div>
-            <label className="label">Startup name</label>
+            <label className="label">{pinned && founder ? "Your startup's name" : "Startup name"}</label>
             <input
               type="text"
               value={value.focalStartup}
               onChange={(e) => set({ focalStartup: e.target.value })}
-              placeholder="e.g., Abridge — or your own startup's name"
+              placeholder={
+                pinned && founder
+                  ? "e.g., the company you're building — required in Founder mode"
+                  : "e.g., Abridge — or your own startup's name"
+              }
               className="input-field"
               maxLength={200}
               disabled={disabled}

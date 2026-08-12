@@ -2,12 +2,25 @@
 
 import { useState } from "react";
 import type { Gradesheet as GradesheetData } from "@/lib/api";
-import { gradeColor } from "@/lib/viz";
 
 interface Props {
   gradesheet: GradesheetData | null | undefined;
   analysisMode?: string;
 }
+
+/** Letter -> text color (semantic score band; magnitude is also legible from the
+ * letter itself, so this is not color-only). NR is a quiet neutral, never a failure. */
+const letterColor = (letter: string | null | undefined): string => {
+  const c = (letter || "").trim().charAt(0).toUpperCase();
+  switch (c) {
+    case "A": return "text-emerald-400";
+    case "B": return "text-lime-400";
+    case "C": return "text-amber-400";
+    case "D": return "text-orange-400";
+    case "F": return "text-rose-400";
+    default:  return "text-gray-500"; // NR / unknown — neutral
+  }
+};
 
 /** Visual letter-grade tab. Every grade is computed IN CODE from the reconciled
  * scores (see final_report.gradesheet); this component only renders. */
@@ -17,16 +30,19 @@ export default function Gradesheet({ gradesheet, analysisMode }: Props) {
   const criteria = gradesheet?.criteria ?? [];
 
   if (startups.length === 0) {
-    return <p className="text-sm text-gray-500">No gradesheet available for this run.</p>;
+    return <div className="empty-state">No gradesheet available for this run.</div>;
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500">
-          Letter grades computed in code from the reconciled scorecard — never LLM-graded.
-          <span className="text-gray-600"> NR = not rated (metric undisclosed).</span>
-        </p>
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="panel-kicker">Grade sheet</div>
+          <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+            Letter grades computed in code from the reconciled scorecard — never LLM-graded.{" "}
+            <span className="text-gray-600">NR = not rated (metric undisclosed), a neutral — not a failure.</span>
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => setShowRubric((v) => !v)}
@@ -37,40 +53,41 @@ export default function Gradesheet({ gradesheet, analysisMode }: Props) {
       </div>
 
       {showRubric && (
-        <div className="space-y-2 rounded-lg border border-gray-800 bg-gray-900/40 p-3">
-          {criteria.map((c) => (
-            <div key={c.key} className="text-xs">
-              <span className="font-semibold text-gray-200">{c.label}</span>
-              <span className="text-gray-500"> — {c.calculation}</span>
-            </div>
-          ))}
+        <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-4">
+          <div className="panel-kicker mb-2">Grading criteria — coded rubric</div>
+          <div className="space-y-2">
+            {criteria.map((c) => (
+              <div key={c.key} className="text-[11px] leading-relaxed">
+                <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-gray-300">{c.label}</span>
+                <span className="text-gray-500"> — {c.calculation}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {startups.map((s) => {
-        const oc = gradeColor(s.overall.letter);
         return (
-          <div
+          <section
             key={s.name}
-            className={`rounded-xl border p-4 ${
-              s.is_focal ? "border-brand-500/40 bg-brand-500/5" : "border-gray-800 bg-gray-900/30"
+            className={`rounded-lg border p-4 ${
+              s.is_focal ? "border-brand-500/40 bg-brand-500/5" : "border-gray-800 bg-gray-900/40"
             }`}
           >
             {/* header: name + overall grade */}
             <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-gray-100">{s.name}</h3>
+              <div className="flex min-w-0 items-center gap-2">
+                <h3 className="truncate text-[15px] font-semibold text-gray-100">{s.name}</h3>
                 {s.is_focal && (
-                  <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-300 ring-1 ring-brand-500/20">
+                  <span className="chip-accent shrink-0">
                     {analysisMode === "founder" ? "Your startup" : "Target"}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wide text-gray-500">Overall</span>
+              <div className="flex shrink-0 items-baseline gap-2.5">
+                <span className="panel-kicker">Overall</span>
                 <span
-                  className="rounded-md px-2.5 py-1 text-lg font-black leading-none"
-                  style={{ backgroundColor: oc.bg, color: oc.fg }}
+                  className={`text-2xl font-semibold leading-none ${letterColor(s.overall.letter)}`}
                   title={s.overall.note}
                 >
                   {s.overall.letter}
@@ -78,34 +95,29 @@ export default function Gradesheet({ gradesheet, analysisMode }: Props) {
               </div>
             </div>
 
-            {/* criterion cards */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {/* criterion cells — instrument grid with hairline seams */}
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-gray-800 bg-gray-800/60 sm:grid-cols-3">
               {criteria.map((c) => {
                 const cell = s.cells[c.key];
-                if (!cell) return null;
-                const col = gradeColor(cell.letter);
+                if (!cell) {
+                  return <div key={c.key} className="bg-gray-900 px-4 py-3" />;
+                }
                 return (
-                  <div
-                    key={c.key}
-                    className="flex items-start justify-between gap-2 rounded-lg border border-gray-800 bg-gray-950/40 p-2.5"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-xs font-semibold text-gray-200">{c.label}</div>
-                      <div className="mt-0.5 truncate text-[11px] text-gray-500" title={cell.note}>
-                        {cell.note}
-                      </div>
+                  <div key={c.key} className="bg-gray-900 px-4 py-3">
+                    <div className="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-gray-500">
+                      {c.label}
                     </div>
-                    <span
-                      className="shrink-0 rounded-md px-2 py-0.5 text-sm font-black leading-tight"
-                      style={{ backgroundColor: col.bg, color: col.fg }}
-                    >
+                    <div className={`mt-1.5 text-xl font-semibold leading-7 ${letterColor(cell.letter)}`}>
                       {cell.letter}
-                    </span>
+                    </div>
+                    <div className="mt-1 truncate font-mono text-[10px] text-gray-600" title={cell.note}>
+                      {cell.note}
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
         );
       })}
     </div>

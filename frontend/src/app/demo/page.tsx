@@ -36,7 +36,7 @@ export default function DemoPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main className="stagger-children mx-auto max-w-6xl px-4 py-8">
         <div className="no-print mb-6">
           <div className="kicker">Live examples</div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-100">See it in action</h1>

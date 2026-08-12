@@ -96,6 +96,8 @@ check("acquisitions None on non-list / empty", N._validate_acquisitions("x") is 
 print("=" * 72); print("Disclaimer + recommended_pick threading (compile stubbed)"); print("=" * 72)
 captured = {}
 def _fake_invoke(llm, messages, max_retries=8):
+    if messages[0][1] is N.TOUR_SUMMARY_SYSTEM:  # the tour's summarizer call, not the compiler's
+        return types.SimpleNamespace(content="{}")
     captured["user_msg"] = messages[1][1]
     return types.SimpleNamespace(content="## 0. Investment Take\nstub")
 def _fail_invoke(llm, messages, max_retries=8):
@@ -296,6 +298,16 @@ with tempfile.TemporaryDirectory() as d:
     check("None-safe meta: nulls fall back to defaults (no 500 material)",
           r2["starred"] is False and r2["analysis_mode"] == "vc")
     check("atomic write leaves no .tmp files", not list(Path(d).glob("*.tmp")))
+    # Longitudinal markers on the LIGHT list (Tracked view): derived from final_report,
+    # null/False on plain runs, id+bool only on re-runs (delta contents never leak).
+    check("plain run: baseline_report_id null + has_delta false",
+          r2["baseline_report_id"] is None and r2["has_delta"] is False)
+    S.save_report("r4", {"ranking": ["A"], "sector": "s", "baseline_id": "r1",
+                         "run_delta": {"entered": [], "pick_changed": False}}, "2026-07-07")
+    r4 = next(m for m in S.list_reports(owner=None) if m["id"] == "r4")
+    check("rerun record: baseline_report_id + has_delta surface in light meta",
+          r4["baseline_report_id"] == "r1" and r4["has_delta"] is True)
+    check("light meta never carries the delta contents", "run_delta" not in r4 and "final_report" not in r4)
 
 
 print("=" * 72); print("Auth helpers (pure python)"); print("=" * 72)

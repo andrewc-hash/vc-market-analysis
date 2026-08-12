@@ -14,7 +14,19 @@ export type IconName =
   | "alert"
   | "arrow-right"
   | "clock"
-  | "refresh";
+  | "refresh"
+  | "play"
+  | "plus"
+  | "doc"
+  | "grid"
+  | "presentation"
+  | "home"
+  | "map"
+  | "target"
+  | "user"
+  | "briefcase"
+  | "history"
+  | "copy";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
@@ -40,6 +52,54 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   refresh: <path d="M20 11a8 8 0 1 0-2.3 6.3M20 5v6h-6" />,
+  play: <path d="M7 5l12 7-12 7V5z" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  doc: <path d="M7 3h7l5 5v13H7V3zM14 3v5h5" />,
+  grid: (
+    <>
+      <rect x="4" y="4" width="7" height="7" rx="1" />
+      <rect x="13" y="4" width="7" height="7" rx="1" />
+      <rect x="4" y="13" width="7" height="7" rx="1" />
+      <rect x="13" y="13" width="7" height="7" rx="1" />
+    </>
+  ),
+  presentation: <path d="M3 4h18M5 4v11h14V4M12 15v3M8 21l4-3 4 3" />,
+  home: <path d="M3 11l9-8 9 8M5 9.5V21h14V9.5M9.5 21v-6h5v6" />,
+  map: <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" />,
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 11.9v.2" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20.5c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="3" y="7.5" width="18" height="12.5" rx="2" />
+      <path d="M9 7.5V5.5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12.5h18M12 11v3" />
+    </>
+  ),
+  // Clock with a counter-clockwise arrow (the "Tracked" longitudinal view).
+  history: (
+    <>
+      <path d="M3.2 12a8.8 8.8 0 1 0 2.6-6.2L3.2 8.4" />
+      <path d="M3.2 3.4v5h5" />
+      <path d="M12 7.6V12l3 2.2" />
+    </>
+  ),
+  // Two offset sheets (the "copy to clipboard" verdict action).
+  copy: (
+    <>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 3h9A1.5 1.5 0 0 1 14.5 4.5V5" />
+    </>
+  ),
 };
 
 export function Icon({

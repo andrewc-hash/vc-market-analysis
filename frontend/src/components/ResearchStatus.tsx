@@ -18,15 +18,26 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Elapsed time counter
+  // Whole-run elapsed counter, anchored to the run's first-seen wall-clock time
+  // (persisted per task so a page reload mid-run doesn't reset the clock to 0:00).
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setElapsedSec((s) => s + 1);
-    }, 1000);
+    const key = `run-start-${taskId}`;
+    let start = Number(localStorage.getItem(key));
+    if (!start || Number.isNaN(start)) {
+      start = Date.now();
+      try { localStorage.setItem(key, String(start)); } catch { /* private mode */ }
+    }
+    const tick = () => setElapsedSec(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    tick();
+    timerRef.current = setInterval(tick, 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [taskId]);
+
+  // Per-step elapsed: remember the total-elapsed value at which the active phase last changed.
+  const [stepStartSec, setStepStartSec] = useState(0);
+  const lastPhaseRef = useRef<string>("");
 
   useEffect(() => {
     const poll = async () => {
@@ -102,6 +113,14 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
   const currentPhase = status?.current_phase || "";
   const step = phaseStep[currentPhase] || 0;
 
+  // Reset the per-step clock whenever the pipeline advances to a new phase.
+  useEffect(() => {
+    if (currentPhase && currentPhase !== lastPhaseRef.current) {
+      lastPhaseRef.current = currentPhase;
+      setStepStartSec(elapsedSec);
+    }
+  }, [currentPhase, elapsedSec]);
+
   return (
     <div className="card space-y-4">
       {/* Status Header */}
@@ -128,9 +147,9 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
         </div>
         <div
           className="text-right text-sm tabular-nums text-gray-500"
-          title={`${pollCount} status checks · 3s interval`}
+          title={`${pollCount} status checks · 3s interval · survives page reloads`}
         >
-          Elapsed {formatTime(elapsedSec)}
+          Total elapsed {formatTime(elapsedSec)}
         </div>
       </div>
 
@@ -165,6 +184,11 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
                   }`}
                 >
                   {s.label}
+                  {state === "active" && (
+                    <span className="ml-2 text-[11px] font-normal tabular-nums text-gray-500">
+                      {formatTime(Math.max(0, elapsedSec - stepStartSec))} in this step
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-gray-500">{s.model}</div>
               </div>
@@ -220,7 +244,7 @@ export default function ResearchStatus({ taskId, onComplete }: Props) {
       {status?.status === "STARTED" && elapsedSec > 30 && (
         <div className="flex items-start gap-2 rounded-md border border-gray-800 bg-gray-900/60 p-3 text-xs text-gray-400">
           <Icon name="clock" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          A full run typically takes 15–25 minutes — the activity feed streams each agent&rsquo;s progress live.
+          A full run typically takes 25–40 minutes — the activity feed streams each agent&rsquo;s progress live.
         </div>
       )}
     </div>

@@ -88,6 +88,8 @@ def _fake_extract_scores(a, b, settings, focal=""):
     # focal kept + tagged low confidence (simulates the real reconciler honoring the exception)
     return RESOLVED, [], None, {}, [], "low", None
 def _fake_invoke(llm, messages, max_retries=8):
+    if messages[0][1] is N.TOUR_SUMMARY_SYSTEM:  # the tour's summarizer call, not the compiler's
+        return types.SimpleNamespace(content="{}")
     captured["user_msg"] = messages[1][1]  # ("user", <text>)
     return types.SimpleNamespace(content="## 0. Investment Take\nstub\n## 7. Scorecard\nstub")
 N._extract_resolved_scores = _fake_extract_scores

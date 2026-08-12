@@ -17,3 +17,4 @@ frontend/out/
 reports/
 .DS_Store
 *.log
+frontend/public/deck.html

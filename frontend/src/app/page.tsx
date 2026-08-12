@@ -25,6 +25,7 @@ export default function Landing() {
           <Wordmark href="/" />
           <nav className="flex items-center gap-1 text-[13px]">
             <a href="/demo" className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">Examples</a>
+            <a href="/deck.html" className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">Intro Deck</a>
             <a href="/docs" className="rounded-md px-2.5 py-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100">Docs</a>
             <a href="/app" className="ml-1 rounded-md bg-brand-600 px-3 py-1.5 font-medium text-white transition-colors hover:bg-brand-500">Open the app</a>
           </nav>
@@ -44,7 +45,7 @@ export default function Landing() {
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-gray-400">
             Name a sector — or a single startup — and Prospectus returns the document an associate
             would take a week to draft: the field mapped and ranked, financials benchmarked by stage,
-            the return math worked, and a recommendation at a price. In about 20 minutes.
+            the return math worked, and a recommendation at a price. In under an hour.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <a href="/demo" className="btn-primary">See a live memo</a>
@@ -57,13 +58,12 @@ export default function Landing() {
         <section className="mx-auto max-w-4xl px-4 pb-14">
           <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-5">
             <div className="kicker">The deliverable</div>
-            <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-300">
-              A 13-section, <span className="font-medium text-gray-100">verdict-first memo</span> — top pick and
-              INVEST / WATCH / PASS at a stated valuation, the one non-consensus insight, and a dated prediction —
-              beside a live instrument panel: a 2×2 market map, a weighted scorecard with the a16z moat breakdown,
-              per-startup letter grades, a stage-benchmarked financial ledger, exit precedents, and a fund-fit panel.
-              Export a full PDF, a one-page tear sheet, Markdown, or JSON.
-            </p>
+            <div className="mt-2.5 grid gap-x-10 gap-y-2 text-[13.5px] leading-relaxed text-gray-300 sm:grid-cols-2">
+              <span>A 13-section, <span className="font-medium text-gray-100">verdict-first memo</span> — INVEST / WATCH / PASS at a stated price</span>
+              <span>2×2 market map · weighted scorecard · per-startup letter grades</span>
+              <span>Stage-benchmarked financials, exit precedents, and fund-fit math</span>
+              <span>Exports: full PDF · one-page tear sheet · Markdown · JSON</span>
+            </div>
           </div>
         </section>
 

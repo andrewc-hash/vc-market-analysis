@@ -2,8 +2,8 @@
 
 > Name a market — or a single startup — and get the document an associate would take a week to draft: a 13-section, verdict-first IC memo with a scored market map, stage-benchmarked financials, worked return math, and a recommendation at a price. In about 20 minutes.
 
-**Live demo (no keys, no backend):** https://vc-market-analysis.vercel.app — three real, unedited pipeline outputs.
-**How it works, in plain language:** https://vc-market-analysis.vercel.app/docs
+**Live demo (no keys, no backend):** https://get-prospectus.vercel.app — three real, unedited pipeline outputs.
+**How it works, in plain language:** https://get-prospectus.vercel.app/docs
 
 ---
 

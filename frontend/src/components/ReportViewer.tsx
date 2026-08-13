@@ -74,7 +74,8 @@ export default function ReportViewer({ result }: Props) {
   const sector = (report.sector || "").trim();
   // R11 header consistency (VC+focal → "Target evaluated", never "Top pick") is centralized
   // in pickLabel() so the masthead, tear sheet, PDF, and Markdown export never diverge.
-  const { pick, kicker: pickKicker, rankSuffix: pickSuffix, fieldLeader, focalIsPick } = pickLabel(report);
+  const { pick, kicker: pickKicker, rankSuffix: pickSuffix, fieldLeader, focalIsPick, verdict } = pickLabel(report);
+  const verdictColor = verdict === "INVEST" ? "text-emerald-400" : verdict === "WATCH" ? "text-amber-400" : verdict === "PASS" ? "text-rose-400" : "text-brand-300";
 
   // Honest return range (gross), matching PrintableReport's null guards.
   const retLo = report.expected_return_low;
@@ -101,7 +102,7 @@ export default function ReportViewer({ result }: Props) {
   const copyVerdict = () => {
     const lines: string[] = [];
     if (sector) lines.push(sector);
-    if (pick) lines.push(`${pickKicker}: ${pick}${pickSuffix}`);
+    if (pick) lines.push(`${pickKicker}: ${verdict ? `${verdict} · ` : ""}${pick}${pickSuffix}`);
     if (fieldLeader) lines.push(`Field leader: ${fieldLeader}`);
     if (retRange) {
       const nLo = report.expected_return_net_low;
@@ -230,17 +231,27 @@ export default function ReportViewer({ result }: Props) {
               <div
                 title={
                   focalIsPick
-                    ? "This report evaluates your target — see §0/§12 for its INVEST/WATCH/PASS verdict. This is NOT a buy recommendation."
+                    ? `Prospectus recommendation on your target. Verdict extracted from §0/§12. See the memo for conditions and price.`
                     : report.recommended_pick && ranking[0] && report.recommended_pick !== ranking[0]
                       ? `The report's §0/§12 recommendation. #1 by quality index: ${ranking[0]} — see the "quality rank vs price" bridge in §12.`
                       : "The report's recommendation"
                 }
               >
                 <div className="kicker">{pickKicker}</div>
-                <div className="mt-1 text-lg font-semibold leading-6 text-brand-300">
-                  {pick}
-                  <span className="ml-1 font-mono text-[11px] font-normal tabular-nums text-gray-500">{pickSuffix}</span>
-                </div>
+                {(focalIsPick || mode === "founder") && verdict ? (
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className={`text-lg font-bold leading-6 tracking-wide ${verdictColor}`}>{verdict}</span>
+                    <span className="text-base font-medium leading-6 text-gray-200">
+                      {pick}
+                      <span className="ml-1 font-mono text-[11px] font-normal tabular-nums text-gray-500">{pickSuffix}</span>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-1 text-lg font-semibold leading-6 text-brand-300">
+                    {pick}
+                    <span className="ml-1 font-mono text-[11px] font-normal tabular-nums text-gray-500">{pickSuffix}</span>
+                  </div>
+                )}
               </div>
             )}
             {fieldLeader && (

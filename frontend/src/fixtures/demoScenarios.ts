@@ -1,12 +1,12 @@
 import type { TaskStatusResponse } from "@/lib/api";
 import vcAgentSecurity from "./demo/vcAgentSecurity.json";
-import vcMedicalScribes from "./demo/vcMedicalScribes.json";
+import vcCloudIAM from "./demo/vcCloudIAM.json";
 import founderNeuroscribe from "./demo/founderNeuroscribe.json";
 
 // The public demo renders REAL multi-agent pipeline outputs (baked to JSON) — no backend,
 // no API keys, no waiting, no cost. Three scenarios cover every mode of the product.
-// Re-baked 2026-07-12 from fresh runs: all three now carry the full artifact set
-// (gradesheet, fund math, methodology, data freshness, exit precedents, §0.5 in founder mode).
+// Re-baked 2026-07-12 (agent security + founder) and 2026-08-12 (cloud IAM + Opal Security focal).
+// All carry the full artifact set (gradesheet, methodology, data freshness, exit precedents).
 
 export interface DemoScenario {
   id: string;
@@ -43,9 +43,9 @@ export const demoScenarios: DemoScenario[] = [
     id: "vc-target",
     tag: "VC · Track a target",
     title: "Sector + a specific startup",
-    subtitle: "Force-include a named startup (Abridge) and rank it against the discovered field.",
-    config: { sector: "AI Ambient Clinical Documentation", stage: "Series A", mode: "VC", target: "Abridge" },
-    result: wrap("demo-vc-target", vcMedicalScribes),
+    subtitle: "Force-include a named startup (Opal Security) and rank it against the discovered field.",
+    config: { sector: "Cloud Identity & Access Management", stage: "All stages", mode: "VC", target: "Opal Security" },
+    result: wrap("demo-vc-target", vcCloudIAM),
   },
   {
     id: "founder",
